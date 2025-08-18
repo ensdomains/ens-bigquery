@@ -1,0 +1,429 @@
+contracts:
+  - name: ENSRegistry
+    event_type: registry
+    address: 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e
+    events:
+      - name: Transfer
+        signature: "Transfer(indexed bytes32,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: false
+      - name: NewOwner
+        signature: "NewOwner(indexed bytes32,indexed bytes32,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: label
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: false
+      - name: NewResolver
+        signature: "NewResolver(indexed bytes32,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: resolver
+            type: address
+            indexed: false
+      - name: NewTTL
+        signature: "NewTTL(indexed bytes32,uint64)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: ttl
+            type: uint64
+            indexed: false
+
+  - name: ENSRegistryOld
+    event_type: registry
+    address: 0x314159265dd8dbb310642f98f50c066173c1259b
+    events:
+      - name: Transfer
+        signature: "Transfer(indexed bytes32,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: false
+      - name: NewOwner
+        signature: "NewOwner(indexed bytes32,indexed bytes32,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: label
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: false
+      - name: NewResolver
+        signature: "NewResolver(indexed bytes32,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: resolver
+            type: address
+            indexed: false
+      - name: NewTTL
+        signature: "NewTTL(indexed bytes32,uint64)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: ttl
+            type: uint64
+            indexed: false
+
+  - name: PublicResolver
+    event_type: resolver
+    addresses:
+      - 0xf29100983e058b709f3d539b0c765937b804ac15
+      - 0xa2c122be93b0074270ebee7f6b7292c7deb45047
+      - 0x5fbb459c49bb06083c33109fa4f14810ec2cf358
+      - 0x226159d592e2b063810a10ebf6dcbada94ed68b8
+      - 0x4976fb03c32e5b8cfe2b6ccb31c09ba78ebaba41
+      - 0xdaaf96c344f63131acadd0ea35170e7892d3dfba
+      - 0x231b0ee14048e9dccd1d247744d114a4eb5e8e63
+      - 0x5ffc014343cd971b7eb70732021e26c35b744cc4
+      - 0x1da022710df5002339274aadee8d58218e9d6ab5
+      - 0xd3ddccdd3b25a8a7423b5bee360a42146eb4baf3
+    events:
+      - name: ABIChanged
+        signature: "ABIChanged(indexed bytes32,indexed uint256)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: contentType
+            type: uint256
+            indexed: true
+      - name: AddrChanged
+        signature: "AddrChanged(indexed bytes32,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: a
+            type: address
+            indexed: false
+      - name: AddressChanged
+        signature: "AddressChanged(indexed bytes32,uint256,bytes)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: coinType
+            type: uint256
+            indexed: false
+          - name: newAddress
+            type: bytes
+            indexed: false
+      - name: AuthorisationChanged
+        signature: "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: true
+          - name: target
+            type: address
+            indexed: true
+          - name: isAuthorised
+            type: bool
+            indexed: false
+      - name: ContenthashChanged
+        signature: "ContenthashChanged(indexed bytes32,bytes)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: hash
+            type: bytes
+            indexed: false
+      - name: InterfaceChanged
+        signature: "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: interfaceID
+            type: bytes4
+            indexed: true
+          - name: implementer
+            type: address
+            indexed: false
+      - name: NameChanged
+        signature: "NameChanged(indexed bytes32,string)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: name
+            type: string
+            indexed: false
+      - name: PubkeyChanged
+        signature: "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: x
+            type: bytes32
+            indexed: false
+          - name: y
+            type: bytes32
+            indexed: false
+      - name: TextChanged
+        signature: "TextChanged(indexed bytes32,indexed string,string)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: indexedKey
+            type: string
+            indexed: true
+          - name: key
+            type: string
+            indexed: false
+      - name: VersionChanged
+        signature: "VersionChanged(indexed bytes32,uint64)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: newVersion
+            type: uint64
+            indexed: false
+
+  - name: BaseRegistrar
+    event_type: registrar
+    address: 0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85
+    events:
+      - name: NameRegistered
+        signature: "NameRegistered(indexed uint256,indexed address,uint256)"
+        parameters:
+          - name: id
+            type: uint256
+            indexed: true
+          - name: owner
+            type: address
+            indexed: true
+          - name: expires
+            type: uint256
+            indexed: false
+      - name: NameRenewed
+        signature: "NameRenewed(indexed uint256,uint256)"
+        parameters:
+          - name: id
+            type: uint256
+            indexed: true
+          - name: expires
+            type: uint256
+            indexed: false
+      - name: Transfer
+        signature: "Transfer(indexed address,indexed address,indexed uint256)"
+        parameters:
+          - name: from
+            type: address
+            indexed: true
+          - name: to
+            type: address
+            indexed: true
+          - name: tokenId
+            type: uint256
+            indexed: true
+
+  - name: EthRegistrarController
+    event_type: registrar_controller
+    addresses:
+      - 0xf0ad5cad05e10572efceb849f6ff0c68f9700455
+      - 0xb22c1c159d12461ea124b0deb4b5b93020e6ad16
+      - 0x283af0b28c62c092c9727f1ee09c02ca627eb7f5
+    events:
+      - name: NameRegistered
+        signature: "NameRegistered(string,indexed bytes32,indexed address,uint256,uint256)"
+        parameters:
+          - name: name
+            type: string
+            indexed: false
+          - name: label
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: true
+          - name: cost
+            type: uint256
+            indexed: false
+          - name: expires
+            type: uint256
+            indexed: false
+      - name: NameRenewed
+        signature: "NameRenewed(string,indexed bytes32,uint256,uint256)"
+        parameters:
+          - name: name
+            type: string
+            indexed: false
+          - name: label
+            type: bytes32
+            indexed: true
+          - name: cost
+            type: uint256
+            indexed: false
+          - name: expires
+            type: uint256
+            indexed: false
+
+  - name: EthRegistrarController4
+    event_type: registrar_controller
+    address: 0x253553366da8546fc250f225fe3d25d0c782303b
+    events:
+      - name: NameRegistered
+        signature: "NameRegistered(string,indexed bytes32,indexed address,uint256,uint256,uint256)"
+        parameters:
+          - name: name
+            type: string
+            indexed: false
+          - name: label
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: true
+          - name: baseCost
+            type: uint256
+            indexed: false
+          - name: premium
+            type: uint256
+            indexed: false
+          - name: expires
+            type: uint256
+            indexed: false
+      - name: NameRenewed
+        signature: "NameRenewed(string,indexed bytes32,uint256,uint256)"
+        parameters:
+          - name: name
+            type: string
+            indexed: false
+          - name: label
+            type: bytes32
+            indexed: true
+          - name: cost
+            type: uint256
+            indexed: false
+          - name: expires
+            type: uint256
+            indexed: false
+
+  - name: NameWrapper
+    event_type: name_wrapper
+    address: 0xD4416b13d2b3a9aBae7AcD5797e58E1AAF138218
+    events:
+      - name: NameWrapped
+        signature: "NameWrapped(indexed bytes32,bytes,indexed address,uint32,uint64)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: name
+            type: bytes
+            indexed: false
+          - name: owner
+            type: address
+            indexed: true
+          - name: fuses
+            type: uint32
+            indexed: false
+          - name: expiry
+            type: uint64
+            indexed: false
+      - name: NameUnwrapped
+        signature: "NameUnwrapped(indexed bytes32,indexed address)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: owner
+            type: address
+            indexed: true
+      - name: FusesSet
+        signature: "FusesSet(indexed bytes32,uint32)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: fuses
+            type: uint32
+            indexed: false
+      - name: ExpiryExtended
+        signature: "ExpiryExtended(indexed bytes32,uint64)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: expiry
+            type: uint64
+            indexed: false
+      - name: TransferSingle
+        signature: "TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)"
+        parameters:
+          - name: operator
+            type: address
+            indexed: true
+          - name: from
+            type: address
+            indexed: true
+          - name: to
+            type: address
+            indexed: true
+          - name: id
+            type: uint256
+            indexed: false
+          - name: value
+            type: uint256
+            indexed: false
+      - name: TransferBatch
+        signature: "TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])"
+        parameters:
+          - name: operator
+            type: address
+            indexed: true
+          - name: from
+            type: address
+            indexed: true
+          - name: to
+            type: address
+            indexed: true
+          - name: ids
+            type: uint256[]
+            indexed: false
+          - name: values
+            type: uint256[]
+            indexed: false
+      - name: ApprovalForAll
+        signature: "ApprovalForAll(indexed address,indexed address,bool)"
+        parameters:
+          - name: owner
+            type: address
+            indexed: true
+          - name: operator
+            type: address
+            indexed: true
+          - name: approved
+            type: bool
+            indexed: false
