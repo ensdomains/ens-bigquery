@@ -158,6 +158,21 @@ contracts:
           - name: key
             type: string
             indexed: false
+      - name: TextChanged
+        signature: "TextChanged(indexed bytes32,indexed string,string,string)"
+        parameters:
+          - name: node
+            type: bytes32
+            indexed: true
+          - name: indexedKey
+            type: string
+            indexed: true
+          - name: key
+            type: string
+            indexed: false
+          - name: value
+            type: string
+            indexed: false
       - name: VersionChanged
         signature: "VersionChanged(indexed bytes32,uint64)"
         parameters:
