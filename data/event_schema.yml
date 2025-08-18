@@ -1,5 +1,6 @@
 contracts:
   - name: ENSRegistry
+    event_type: registry
     address: 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e
     events:
       - "Transfer(indexed bytes32,address)"
@@ -8,6 +9,7 @@ contracts:
       - "NewTTL(indexed bytes32,uint64)"
 
   - name: ENSRegistryOld
+    event_type: registry
     address: 0x314159265dd8dbb310642f98f50c066173c1259b
     events:
       - "Transfer(indexed bytes32,address)"
@@ -15,134 +17,19 @@ contracts:
       - "NewResolver(indexed bytes32,address)"
       - "NewTTL(indexed bytes32,uint64)"
 
-  - name: PublicResolver1
-    address: 0xf29100983e058b709f3d539b0c765937b804ac15
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver2
-    address: 0xa2c122be93b0074270ebee7f6b7292c7deb45047
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver3
-    address: 0x5fbb459c49bb06083c33109fa4f14810ec2cf358
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver4
-    address: 0x226159d592e2b063810a10ebf6dcbada94ed68b8
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver5
-    address: 0x4976fb03c32e5b8cfe2b6ccb31c09ba78ebaba41
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver6
-    address: 0xdaaf96c344f63131acadd0ea35170e7892d3dfba
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver7
-    address: 0x231b0ee14048e9dccd1d247744d114a4eb5e8e63
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver8
-    address: 0x5ffc014343cd971b7eb70732021e26c35b744cc4
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver9
-    address: 0x1da022710df5002339274aadee8d58218e9d6ab5
-    events:
-      - "ABIChanged(indexed bytes32,indexed uint256)"
-      - "AddrChanged(indexed bytes32,address)"
-      - "AddressChanged(indexed bytes32,uint256,bytes)"
-      - "AuthorisationChanged(indexed bytes32,indexed address,indexed address,bool)"
-      - "ContenthashChanged(indexed bytes32,bytes)"
-      - "InterfaceChanged(indexed bytes32,indexed bytes4,address)"
-      - "NameChanged(indexed bytes32,string)"
-      - "PubkeyChanged(indexed bytes32,bytes32,bytes32)"
-      - "TextChanged(indexed bytes32,indexed string,string)"
-      - "VersionChanged(indexed bytes32,uint64)"
-
-  - name: PublicResolver10
-    address: 0xd3ddccdd3b25a8a7423b5bee360a42146eb4baf3
+  - name: PublicResolver
+    event_type: resolver
+    addresses:
+      - 0xf29100983e058b709f3d539b0c765937b804ac15
+      - 0xa2c122be93b0074270ebee7f6b7292c7deb45047
+      - 0x5fbb459c49bb06083c33109fa4f14810ec2cf358
+      - 0x226159d592e2b063810a10ebf6dcbada94ed68b8
+      - 0x4976fb03c32e5b8cfe2b6ccb31c09ba78ebaba41
+      - 0xdaaf96c344f63131acadd0ea35170e7892d3dfba
+      - 0x231b0ee14048e9dccd1d247744d114a4eb5e8e63
+      - 0x5ffc014343cd971b7eb70732021e26c35b744cc4
+      - 0x1da022710df5002339274aadee8d58218e9d6ab5
+      - 0xd3ddccdd3b25a8a7423b5bee360a42146eb4baf3
     events:
       - "ABIChanged(indexed bytes32,indexed uint256)"
       - "AddrChanged(indexed bytes32,address)"
@@ -156,37 +43,32 @@ contracts:
       - "VersionChanged(indexed bytes32,uint64)"
 
   - name: BaseRegistrar
+    event_type: registrar
     address: 0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85
     events:
       - "NameRegistered(indexed uint256,indexed address,uint256)"
       - "NameRenewed(indexed uint256,uint256)"
       - "Transfer(indexed address,indexed address,indexed uint256)"
 
-  - name: EthRegistrarController1
-    address: 0xf0ad5cad05e10572efceb849f6ff0c68f9700455
+  - name: EthRegistrarController
+    event_type: registrar_controller
+    addresses:
+      - 0xf0ad5cad05e10572efceb849f6ff0c68f9700455
+      - 0xb22c1c159d12461ea124b0deb4b5b93020e6ad16
+      - 0x283af0b28c62c092c9727f1ee09c02ca627eb7f5
     events:
       - "NameRegistered(string,indexed bytes32,indexed address,uint256,uint256)"
       - "NameRenewed(string,indexed bytes32,uint256,uint256)"
 
   - name: EthRegistrarController2
-    address: 0xb22c1c159d12461ea124b0deb4b5b93020e6ad16
-    events:
-      - "NameRegistered(string,indexed bytes32,indexed address,uint256,uint256)"
-      - "NameRenewed(string,indexed bytes32,uint256,uint256)"
-
-  - name: EthRegistrarController3
-    address: 0x283af0b28c62c092c9727f1ee09c02ca627eb7f5
-    events:
-      - "NameRegistered(string,indexed bytes32,indexed address,uint256,uint256)"
-      - "NameRenewed(string,indexed bytes32,uint256,uint256)"
-
-  - name: EthRegistrarController4
+    event_type: registrar_controller
     address: 0x253553366da8546fc250f225fe3d25d0c782303b
     events:
       - "NameRegistered(string,indexed bytes32,indexed address,uint256,uint256,uint256)"
       - "NameRenewed(string,indexed bytes32,uint256,uint256)"
 
   - name: NameWrapper
+    event_type: name_wrapper
     address: 0xD4416b13d2b3a9aBae7AcD5797e58E1AAF138218
     events:
       - "NameWrapped(indexed bytes32,bytes,indexed address,uint32,uint64)"
