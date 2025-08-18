@@ -1,51 +1,9 @@
 contracts:
   - name: ENSRegistry
     event_type: registry
-    address: 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e
-    events:
-      - name: Transfer
-        signature: "Transfer(indexed bytes32,address)"
-        parameters:
-          - name: node
-            type: bytes32
-            indexed: true
-          - name: owner
-            type: address
-            indexed: false
-      - name: NewOwner
-        signature: "NewOwner(indexed bytes32,indexed bytes32,address)"
-        parameters:
-          - name: node
-            type: bytes32
-            indexed: true
-          - name: label
-            type: bytes32
-            indexed: true
-          - name: owner
-            type: address
-            indexed: false
-      - name: NewResolver
-        signature: "NewResolver(indexed bytes32,address)"
-        parameters:
-          - name: node
-            type: bytes32
-            indexed: true
-          - name: resolver
-            type: address
-            indexed: false
-      - name: NewTTL
-        signature: "NewTTL(indexed bytes32,uint64)"
-        parameters:
-          - name: node
-            type: bytes32
-            indexed: true
-          - name: ttl
-            type: uint64
-            indexed: false
-
-  - name: ENSRegistryOld
-    event_type: registry
-    address: 0x314159265dd8dbb310642f98f50c066173c1259b
+    addresses:
+      - 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e
+      - 0x314159265dd8dbb310642f98f50c066173c1259b
     events:
       - name: Transfer
         signature: "Transfer(indexed bytes32,address)"
