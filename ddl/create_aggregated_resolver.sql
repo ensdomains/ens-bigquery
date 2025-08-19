@@ -18,7 +18,7 @@ WITH all_text_events AS (
     NULL AS text_value,
     block_timestamp,
     'v3' AS version
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_TextChanged_v3`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_TextChanged_v3`
   WHERE text_key IS NOT NULL
   
   UNION ALL
@@ -32,7 +32,7 @@ WITH all_text_events AS (
     text_value, -- Now properly decoded
     block_timestamp,
     'v4' AS version
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_TextChanged_v4`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_TextChanged_v4`
   WHERE text_key IS NOT NULL
 ),
 latest_text_per_key AS (
@@ -90,7 +90,7 @@ WITH latest_addresses AS (
       PARTITION BY address, node, coinType 
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_AddressChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_AddressChanged`
 ),
 active_addresses AS (
   SELECT 
@@ -147,7 +147,7 @@ WITH all_text_events AS (
     transaction_hash,
     log_index,
     'v3' AS version
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_TextChanged_v3`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_TextChanged_v3`
   WHERE text_key IS NOT NULL AND text_key != ''
   
   UNION ALL
@@ -163,7 +163,7 @@ WITH all_text_events AS (
     transaction_hash,
     log_index,
     'v4' AS version
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_TextChanged_v4`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_TextChanged_v4`
   WHERE text_key IS NOT NULL AND text_key != ''
 ),
 latest_text_per_key AS (
@@ -217,52 +217,52 @@ GROUP BY address, node;
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.agg_resolver_activity` AS
 WITH all_events AS (
   SELECT address, node, block_timestamp, 'AddrChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_AddrChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_AddrChanged`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'AddressChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_AddressChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_AddressChanged`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'TextChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_TextChanged_v3`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_TextChanged_v3`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'TextChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_TextChanged_v4`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_TextChanged_v4`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'ContenthashChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_ContenthashChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_ContenthashChanged`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'NameChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_NameChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_NameChanged`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'PubkeyChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_PubkeyChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_PubkeyChanged`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'ABIChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_ABIChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_ABIChanged`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'InterfaceChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_InterfaceChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_InterfaceChanged`
   
   UNION ALL
   
   SELECT address, node, block_timestamp, 'AuthorisationChanged' AS event_type
-  FROM `web3-publicgoods.ens_temp2.ens_decoded_resolver_event_AuthorisationChanged`
+  FROM `web3-publicgoods.ens_temp2.decoded_resolver_AuthorisationChanged`
 )
 SELECT 
   address,
