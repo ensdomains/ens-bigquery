@@ -2,46 +2,46 @@
 -- This table contains the current resolver configuration for each node
 -- Matches the schema defined in table_documentation.md
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_resolvers` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolvers` AS
 WITH all_resolver_nodes AS (
   -- Get all unique resolver+node combinations from all sources
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_eth_addresses`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_eth_addresses`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_contenthashes`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_contenthashes`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_reverse_names`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_reverse_names`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_aggregated_resolver_text_records`
+  FROM `web3-publicgoods.ens_temp2.agg_resolver_text_records`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_aggregated_resolver_addresses`
+  FROM `web3-publicgoods.ens_temp2.agg_resolver_addresses`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_pubkeys`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_pubkeys`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_abi`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_abi`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_interfaces`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_interfaces`
 ),
 resolver_data_combined AS (
   SELECT 
@@ -70,20 +70,20 @@ resolver_data_combined AS (
   FROM all_resolver_nodes arn
   
   -- Join state tables (latest values)
-  LEFT JOIN `web3-publicgoods.ens_temp.ens_state_resolver_eth_addresses` eth
+  LEFT JOIN `web3-publicgoods.ens_temp2.state_resolver_eth_addresses` eth
     ON arn.address = eth.address AND arn.node = eth.node
     
-  LEFT JOIN `web3-publicgoods.ens_temp.ens_state_resolver_contenthashes` ch
+  LEFT JOIN `web3-publicgoods.ens_temp2.state_resolver_contenthashes` ch
     ON arn.address = ch.address AND arn.node = ch.node
     
-  LEFT JOIN `web3-publicgoods.ens_temp.ens_state_resolver_reverse_names` rn
+  LEFT JOIN `web3-publicgoods.ens_temp2.state_resolver_reverse_names` rn
     ON arn.address = rn.address AND arn.node = rn.node
   
   -- Join aggregated tables (collections)
-  LEFT JOIN `web3-publicgoods.ens_temp.ens_aggregated_resolver_text_records` txtr
+  LEFT JOIN `web3-publicgoods.ens_temp2.agg_resolver_text_records` txtr
     ON arn.address = txtr.address AND arn.node = txtr.node
     
-  LEFT JOIN `web3-publicgoods.ens_temp.ens_aggregated_resolver_addresses` addr
+  LEFT JOIN `web3-publicgoods.ens_temp2.agg_resolver_addresses` addr
     ON arn.address = addr.address AND arn.node = addr.node
 )
 SELECT
@@ -111,16 +111,16 @@ WHERE addr IS NOT NULL
    OR reverseName IS NOT NULL;
 
 -- Drop and recreate clustered table (clustering spec cannot be changed with CREATE OR REPLACE)
-DROP TABLE IF EXISTS `web3-publicgoods.ens_temp.ens_resolvers_clustered`;
+DROP TABLE IF EXISTS `web3-publicgoods.ens_temp2.resolvers_clustered`;
 
 -- Create a clustered version for better query performance
-CREATE TABLE `web3-publicgoods.ens_temp.ens_resolvers_clustered`
+CREATE TABLE `web3-publicgoods.ens_temp2.resolvers_clustered`
 CLUSTER BY address, node
 AS 
-SELECT * FROM `web3-publicgoods.ens_temp.ens_resolvers`;
+SELECT * FROM `web3-publicgoods.ens_temp2.resolvers`;
 
 -- Create a view with additional computed fields for easier querying
-CREATE OR REPLACE VIEW `web3-publicgoods.ens_temp.ens_resolvers_extended` AS
+CREATE OR REPLACE VIEW `web3-publicgoods.ens_temp2.resolvers_extended` AS
 SELECT
   address,
   node,
@@ -151,10 +151,10 @@ SELECT
     THEN TRUE
     ELSE FALSE
   END AS is_reverse_record
-FROM `web3-publicgoods.ens_temp.ens_resolvers`;
+FROM `web3-publicgoods.ens_temp2.resolvers`;
 
 -- Create summary statistics table for monitoring
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_resolvers_stats` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolvers_stats` AS
 SELECT
   COUNT(*) AS total_resolver_records,
   COUNT(DISTINCT address) AS unique_resolver_addresses,
@@ -165,4 +165,4 @@ SELECT
   COUNT(contenthash) AS nodes_with_contenthash,
   COUNT(reverseName) AS nodes_with_reverse_name,
   CURRENT_TIMESTAMP() AS stats_generated_at
-FROM `web3-publicgoods.ens_temp.ens_resolvers`;
+FROM `web3-publicgoods.ens_temp2.resolvers`;

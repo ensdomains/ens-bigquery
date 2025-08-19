@@ -17,14 +17,14 @@ OPTIONS
   ( library="gs://blockchain-etl-bigquery/ethers.js" );
 
 -- Create reverse records using the proper ENS logic
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_reverse_records` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.reverse_records` AS
 WITH
 -- Get all ETH addresses that have been resolved (forward resolution)
 resolved_addrs AS (
   SELECT DISTINCT
     node,
     addr
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_eth_addresses`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_eth_addresses`
   WHERE addr IS NOT NULL
     AND addr != '0x0000000000000000000000000000000000000000'
     AND LENGTH(addr) = 42
@@ -34,7 +34,7 @@ resolvers AS (
   SELECT DISTINCT
     node,
     address AS resolver
-  FROM `web3-publicgoods.ens_temp.ens_resolvers`
+  FROM `web3-publicgoods.ens_temp2.resolvers`
   WHERE reverseName IS NOT NULL
     AND reverseName != ''
 ),
@@ -44,7 +44,7 @@ names AS (
     node,
     address AS resolver,
     reverseName AS name
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_reverse_names`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_reverse_names`
   WHERE reverseName IS NOT NULL 
     AND reverseName != ''
 )
@@ -67,13 +67,13 @@ INNER JOIN names
 WHERE resolved_addrs.node = NAMEHASH(names.name);
 
 -- Create an unvalidated version without the validation step for debugging
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_reverse_records_unvalidated` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.debug_reverse_records_unvalidated` AS
 WITH reverse_resolver_data AS (
   SELECT DISTINCT
     node,
     address AS resolver_address,
     reverseName AS name
-  FROM `web3-publicgoods.ens_temp.ens_state_resolver_reverse_names`
+  FROM `web3-publicgoods.ens_temp2.state_resolver_reverse_names`
   WHERE reverseName IS NOT NULL 
     AND reverseName != ''
 )

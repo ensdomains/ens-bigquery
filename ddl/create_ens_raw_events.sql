@@ -2,7 +2,7 @@
 -- Each table filters events by contract addresses for different ENS event types
 
 -- 1. ENS Registry events (current and legacy)
-CREATE OR REPLACE TABLE ens_temp.ens_raw_registry_events AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.raw_registry_events` AS
 SELECT 
     log_index,
     transaction_hash,
@@ -24,7 +24,7 @@ AND block_timestamp >= '2017-05-04'  -- ENS launch date
 ORDER BY block_number, log_index;
 
 -- 2. PublicResolver events (all versions)
-CREATE OR REPLACE TABLE ens_temp.ens_raw_resolver_events AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.raw_resolver_events` AS
 SELECT 
     log_index,
     transaction_hash,
@@ -53,7 +53,7 @@ AND block_timestamp >= '2017-05-04'  -- ENS launch date
 ORDER BY block_number, log_index;
 
 -- 3. BaseRegistrar events
-CREATE OR REPLACE TABLE ens_temp.ens_raw_registrar_events AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.raw_registrar_events` AS
 SELECT 
     log_index,
     transaction_hash,
@@ -73,7 +73,7 @@ AND block_timestamp >= '2019-05-04'  -- BaseRegistrar deployment date
 ORDER BY block_number, log_index;
 
 -- 4. EthRegistrarController events (all versions)
-CREATE OR REPLACE TABLE ens_temp.ens_raw_registrar_controller_events AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.raw_controller_events` AS
 SELECT 
     log_index,
     transaction_hash,
@@ -96,7 +96,7 @@ AND block_timestamp >= '2019-05-04'  -- Controller deployment date
 ORDER BY block_number, log_index;
 
 -- 5. NameWrapper events
-CREATE OR REPLACE TABLE ens_temp.ens_raw_name_wrapper_events AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.raw_name_wrapper_events` AS
 SELECT 
     log_index,
     transaction_hash,
