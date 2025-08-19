@@ -66,8 +66,8 @@ INNER JOIN names
 -- Validate that forward resolution matches (prevents invalid reverse records)
 WHERE resolved_addrs.node = NAMEHASH(names.name);
 
--- Create a simpler version without the validation step for debugging
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_reverse_records_simple` AS
+-- Create an unvalidated version without the validation step for debugging
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_reverse_records_unvalidated` AS
 WITH reverse_resolver_data AS (
   SELECT DISTINCT
     node,
