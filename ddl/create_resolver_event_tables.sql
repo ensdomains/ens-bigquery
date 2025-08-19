@@ -41,8 +41,11 @@ SELECT
   log_index,
   address,
   topics[SAFE_OFFSET(1)] AS node,
-  -- Parse data field for coinType and newAddress (simplified)
-  data
+  -- Extract coinType from first 32 bytes of data
+  CAST(CONCAT('0x', SUBSTR(data, 3, 64)) AS INT64) AS coinType,
+  -- Extract newAddress from remaining data (simplified - actual parsing more complex for dynamic bytes)
+  CONCAT('0x', SUBSTR(data, 131)) AS newAddress,
+  data AS raw_data
 FROM `web3-publicgoods.ens_temp.ens_raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("AddressChanged(bytes32,uint256,bytes)");
 
