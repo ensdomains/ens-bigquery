@@ -19,19 +19,21 @@ WITH all_text_events AS (
     block_timestamp,
     'v3' AS version
   FROM `web3-publicgoods.ens_temp.ens_decoded_resolver_event_TextChanged_v3`
+  WHERE text_key IS NOT NULL
   
   UNION ALL
   
-  -- Combine v4 TextChanged events (key and value)
+  -- Combine v4 TextChanged events (key and value)  
   SELECT 
     address, 
     node, 
     indexedKey,
-    text_data AS key_value, -- Contains both key and value encoded
-    text_data AS text_value, -- Will need proper parsing
+    text_key AS key_value, -- Now properly decoded
+    text_value, -- Now properly decoded
     block_timestamp,
     'v4' AS version
   FROM `web3-publicgoods.ens_temp.ens_decoded_resolver_event_TextChanged_v4`
+  WHERE text_key IS NOT NULL
 ),
 latest_text_per_key AS (
   -- Get the latest value for each text key
@@ -54,19 +56,19 @@ unique_text_keys AS (
   SELECT 
     address,
     node,
-    indexedKey,
+    key_value AS text_key,
     block_timestamp
   FROM latest_text_per_key
   WHERE rn = 1
     -- Filter out cleared/null text records if needed
-    AND indexedKey IS NOT NULL
-    AND indexedKey != ''
+    AND key_value IS NOT NULL
+    AND key_value != ''
 )
 SELECT 
   address,
   node,
-  ARRAY_AGG(indexedKey ORDER BY indexedKey) AS text_keys,
-  STRING_AGG(indexedKey ORDER BY indexedKey) AS text_keys_csv,
+  ARRAY_AGG(text_key ORDER BY text_key) AS text_keys,
+  STRING_AGG(text_key ORDER BY text_key) AS text_keys_csv,
   COUNT(*) AS text_keys_count,
   MAX(block_timestamp) AS last_updated_timestamp
 FROM unique_text_keys
@@ -131,63 +133,84 @@ SELECT
 FROM active_addresses
 GROUP BY address, node;
 
--- Aggregate text values with their latest state (v4 events with values)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_aggregated_resolver_text_values` AS
-WITH text_v4_parsed AS (
-  -- This would need proper ABI decoding of the data field
-  -- For now, storing raw data - would need to parse the string values
+-- Aggregate text values with their latest state (combining v3 and v4 events)
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_aggregated_resolver_text_records` AS
+WITH all_text_events AS (
+  -- v3 events (key only, no value)
   SELECT 
     address,
     node,
-    indexedKey,
-    text_data, -- Contains encoded key and value
+    text_key,
+    CAST(NULL AS STRING) AS text_value,
     block_timestamp,
     block_number,
     transaction_hash,
     log_index,
-    ROW_NUMBER() OVER (
-      PARTITION BY address, node, indexedKey
-      ORDER BY block_timestamp DESC, log_index DESC
-    ) AS rn
-  FROM `web3-publicgoods.ens_temp.ens_decoded_resolver_event_TextChanged_v4`
-),
-latest_text_values AS (
+    'v3' AS version
+  FROM `web3-publicgoods.ens_temp.ens_decoded_resolver_event_TextChanged_v3`
+  WHERE text_key IS NOT NULL AND text_key != ''
+  
+  UNION ALL
+  
+  -- v4 events (key and value)
   SELECT 
     address,
     node,
-    indexedKey AS text_key,
-    text_data AS text_value, -- Would need proper parsing
+    text_key,
+    text_value,
     block_timestamp,
     block_number,
-    transaction_hash
-  FROM text_v4_parsed
+    transaction_hash,
+    log_index,
+    'v4' AS version
+  FROM `web3-publicgoods.ens_temp.ens_decoded_resolver_event_TextChanged_v4`
+  WHERE text_key IS NOT NULL AND text_key != ''
+),
+latest_text_per_key AS (
+  -- Get the latest value for each text key
+  SELECT 
+    address,
+    node,
+    text_key,
+    text_value,
+    version,
+    block_timestamp,
+    ROW_NUMBER() OVER (
+      PARTITION BY address, node, text_key
+      ORDER BY block_timestamp DESC, log_index DESC
+    ) AS rn
+  FROM all_text_events
+),
+active_text_records AS (
+  SELECT 
+    address,
+    node,
+    text_key,
+    text_value,
+    version,
+    block_timestamp
+  FROM latest_text_per_key
   WHERE rn = 1
+    -- Optionally filter out empty values
+    AND (text_value IS NOT NULL OR version = 'v3')
 )
 SELECT 
   address,
   node,
-  -- Store as array of key-value pairs
+  -- Store as array of structs (Option B - best for filtering)
   ARRAY_AGG(
     STRUCT(
-      text_key,
-      text_value,
-      block_timestamp,
-      block_number,
-      transaction_hash
+      text_key AS key,
+      IFNULL(text_value, '') AS value
     )
     ORDER BY text_key
   ) AS text_records,
-  -- Also create a JSON representation for easier querying
-  CONCAT('{',
-    STRING_AGG(
-      CONCAT('"', text_key, '":"', text_value, '"'),
-      ','
-      ORDER BY text_key
-    ),
-  '}') AS text_records_json,
+  -- Keep CSV of keys for backward compatibility
+  STRING_AGG(text_key ORDER BY text_key) AS text_keys_csv,
+  -- Count and metadata
   COUNT(*) AS text_record_count,
   MAX(block_timestamp) AS last_updated_timestamp
-FROM latest_text_values
+FROM active_text_records
 GROUP BY address, node;
 
 -- Create a combined view of all resolver activity

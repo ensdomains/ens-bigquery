@@ -73,6 +73,7 @@ WITH latest_names AS (
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
   FROM `web3-publicgoods.ens_temp.ens_decoded_resolver_event_NameChanged`
+  WHERE domain_name IS NOT NULL
 )
 SELECT 
   address,
@@ -198,7 +199,7 @@ WITH latest_auth AS (
     node,
     owner,
     target,
-    data AS auth_data, -- Contains the boolean authorization status
+    isAuthorised, -- Now properly decoded boolean
     block_timestamp,
     block_number,
     transaction_hash,
@@ -221,8 +222,8 @@ active_authorizations AS (
     MAX(block_number) AS last_updated_block
   FROM latest_auth
   WHERE rn = 1
-    -- Filter for only active authorizations (would need to parse auth_data boolean)
-    AND auth_data != '0x0000000000000000000000000000000000000000000000000000000000000000'
+    -- Filter for only active authorizations using decoded boolean
+    AND isAuthorised = TRUE
   GROUP BY address, node, owner
 )
 SELECT 
