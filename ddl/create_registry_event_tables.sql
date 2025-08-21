@@ -1,63 +1,46 @@
--- Create registry event tables by parsing raw data directly
+-- Create decoded registry event tables following the same pattern as resolver events
+-- Decodes NewOwner, Transfer, and NewResolver events from raw registry events
+
 -- ======================
--- REGISTRY EVENTS
+-- REGISTRY EVENTS DECODING  
 -- ======================
 
--- Registry Transfer events (bytes32 node, address owner)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_decoded_registry_event_Transfer` AS
-SELECT
-  transaction_hash,
-  block_number,
-  block_timestamp,
-  block_hash,
-  log_index,
-  address,
-  topics[SAFE_OFFSET(1)] AS node,
-  CONCAT('0x', SUBSTR(data, 27)) AS owner
-FROM `web3-publicgoods.ens_temp.ens_raw_registry_events`
-WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("Transfer(bytes32,address)");
+-- NewOwner Event: event NewOwner(bytes32 indexed node, bytes32 indexed label, address owner)
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.decoded_registry_NewOwner` AS
+SELECT 
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics[SAFE_OFFSET(1)] AS node,           -- bytes32 indexed
+    topics[SAFE_OFFSET(2)] AS label,          -- bytes32 indexed (labelHash)
+    CONCAT('0x', SUBSTR(data, 27, 40)) AS owner  -- address from data
+FROM `web3-publicgoods.ens_temp2.raw_registry_events`
+WHERE topics[SAFE_OFFSET(0)] = '0xce0457fe73731f824cc272376169235128c118b49d344817417c6d108d155e82';
 
--- Registry NewOwner events (bytes32 node, bytes32 label, address owner)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_decoded_registry_event_NewOwner` AS
-SELECT
-  transaction_hash,
-  block_number,
-  block_timestamp,
-  block_hash,
-  log_index,
-  address,
-  topics[SAFE_OFFSET(1)] AS node,
-  topics[SAFE_OFFSET(2)] AS label,
-  CONCAT('0x', SUBSTR(data, 27)) AS owner
-FROM `web3-publicgoods.ens_temp.ens_raw_registry_events`
-WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NewOwner(bytes32,bytes32,address)");
+-- Transfer Event: event Transfer(bytes32 indexed node, address owner)  
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.decoded_registry_Transfer` AS
+SELECT 
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics[SAFE_OFFSET(1)] AS node,           -- bytes32 indexed
+    CONCAT('0x', SUBSTR(data, 27, 40)) AS owner  -- address from data
+FROM `web3-publicgoods.ens_temp2.raw_registry_events`
+WHERE topics[SAFE_OFFSET(0)] = '0xd4735d920b0f87494915f556dd9b54c8f309026070caea5c737245152564d266';
 
--- Registry NewResolver events (bytes32 node, address resolver)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_decoded_registry_event_NewResolver` AS
-SELECT
-  transaction_hash,
-  block_number,
-  block_timestamp,
-  block_hash,
-  log_index,
-  address,
-  topics[SAFE_OFFSET(1)] AS node,
-  CONCAT('0x', SUBSTR(data, 27)) AS resolver
-FROM `web3-publicgoods.ens_temp.ens_raw_registry_events`
-WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NewResolver(bytes32,address)");
-
--- Registry NewTTL events (bytes32 node, uint64 ttl)
--- Gets "Bad int64 value: 0x000000000000000000000000000000..." error
--- 
--- CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp.ens_decoded_registry_event_NewTTL` AS
--- SELECT
---   transaction_hash,
---   block_number,
---   block_timestamp,
---   block_hash,
---   log_index,
---   address,
---   topics[SAFE_OFFSET(1)] AS node,
---   CAST(CONCAT('0x', SUBSTR(data, 3)) AS INT64) AS ttl
--- FROM `web3-publicgoods.ens_temp.ens_raw_registry_events`
--- WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NewTTL(bytes32,uint64)");
+-- NewResolver Event: event NewResolver(bytes32 indexed node, address resolver)
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.decoded_registry_NewResolver` AS
+SELECT 
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics[SAFE_OFFSET(1)] AS node,           -- bytes32 indexed
+    CONCAT('0x', SUBSTR(data, 27, 40)) AS resolver  -- address from data
+FROM `web3-publicgoods.ens_temp2.raw_registry_events`
+WHERE topics[SAFE_OFFSET(0)] = '0x335721b01866dc23fbee8b6b2c7b1e14d6f05c28cd35a2c934239f94095602a0';
