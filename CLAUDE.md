@@ -56,38 +56,56 @@ When creating event tables, the following column names were mapped to avoid BigQ
 └── transactions (Transaction metadata)
     │
     ├── 📊 EXTRACTION LAYER: Contract-filtered raw data
-    │   ├── ens_raw_resolver_events
-    │   ├── ens_raw_registry_events  
-    │   ├── ens_raw_registrar_events
-    │   └── ens_raw_controller_events
+    │   ├── raw_resolver_events
+    │   ├── raw_registry_events  
+    │   ├── raw_registrar_events
+    │   └── raw_controller_events
     │
-    ├── 🔧 DECODING LAYER: ABI-decoded resolver events
-    │   ├── ens_decoded_resolver_event_AddrChanged
-    │   ├── ens_decoded_resolver_event_AddressChanged
-    │   ├── ens_decoded_resolver_event_TextChanged_v3
-    │   ├── ens_decoded_resolver_event_TextChanged_v4
-    │   ├── ens_decoded_resolver_event_ContenthashChanged
-    │   ├── ens_decoded_resolver_event_NameChanged
-    │   └── ens_decoded_resolver_event_* (9 event types total)
+    ├── 🔧 DECODING LAYER: ABI-decoded events
+    │   ├── RESOLVER EVENTS:
+    │   │   ├── decoded_resolver_event_AddrChanged
+    │   │   ├── decoded_resolver_event_AddressChanged  
+    │   │   ├── decoded_resolver_event_TextChanged_v3
+    │   │   ├── decoded_resolver_event_TextChanged_v4
+    │   │   ├── decoded_resolver_event_ContenthashChanged
+    │   │   ├── decoded_resolver_event_NameChanged
+    │   │   └── decoded_resolver_event_* (9 event types total)
+    │   │
+    │   └── REGISTRY EVENTS:
+    │       ├── decoded_registry_NewOwner
+    │       ├── decoded_registry_Transfer
+    │       └── decoded_registry_NewResolver
     │
-    ├── 🔄 STATE LAYER: Latest values per resolver+node
-    │   ├── ens_state_resolver_eth_addresses
-    │   ├── ens_state_resolver_contenthashes
-    │   ├── ens_state_resolver_reverse_names
-    │   ├── ens_state_resolver_pubkeys
-    │   ├── ens_state_resolver_abi
-    │   └── ens_state_resolver_interfaces
+    ├── 🔄 STATE LAYER: Latest values per node
+    │   ├── RESOLVER STATE:
+    │   │   ├── state_resolver_eth_addresses
+    │   │   ├── state_resolver_contenthashes
+    │   │   ├── state_resolver_reverse_names
+    │   │   ├── state_resolver_pubkeys
+    │   │   ├── state_resolver_abi
+    │   │   └── state_resolver_interfaces
+    │   │
+    │   └── REGISTRY STATE:
+    │       ├── state_registry_owners (latest owner per node)
+    │       ├── state_registry_resolvers (latest resolver per node)
+    │       └── state_registry_labels (first label per node)
     │
     ├── 📊 AGGREGATION LAYER: Collections and analytics
-    │   ├── ens_aggregated_resolver_text_records (array of key-value structs)
-    │   ├── ens_aggregated_resolver_addresses (multi-chain addresses)
-    │   └── ens_aggregated_resolver_activity (event statistics)
+    │   ├── RESOLVER AGGREGATION:
+    │   │   ├── agg_resolver_text_records (array of key-value structs)
+    │   │   ├── agg_resolver_addresses (multi-chain addresses)
+    │   │   └── agg_resolver_activity (event statistics)
+    │   │
+    │   └── REGISTRY AGGREGATION:
+    │       ├── agg_registry_hierarchy (parent-child relationships with keccak256)
+    │       └── agg_registry_activity (ownership and resolver statistics)
     │
     └── 🎯 TARGET LAYER: Final production tables
-        ├── ens_resolvers (main table with text_records array)
-        ├── ens_resolvers_clustered (performance-optimized)
-        ├── ens_reverse_records (validated reverse lookups)
-        └── ens_reverse_records_unvalidated (debugging/unvalidated)
+        ├── resolvers (main table with text_records array)
+        ├── resolvers_clustered (performance-optimized)
+        ├── registry (4.06M nodes with hierarchical names)
+        ├── reverse_records (validated reverse lookups)
+        └── reverse_records_unvalidated (debugging/unvalidated)
 ```
 
 ## Production Pipeline (6 DDL files in order)
