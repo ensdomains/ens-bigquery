@@ -81,16 +81,12 @@ SELECT
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
     -- Extract name using JavaScript UDF
     EXTRACT_NAME_FROM_ABI_DATA(data) AS name,
-    -- Extract cost and expires with version-specific logic
-    -- v2 controller (0x253553366da8546fc250f225fe3d25d0c782303b): baseCost at 67, expires at 195
-    -- v3/v4 controllers: cost at 67, expires at 131
+    -- Extract cost and expires - NameRenewed ABI is consistent across all versions
+    -- v2 NameRenewed ABI: name(string), cost(uint256), expires(uint256) - same as v3/v4!
+    -- v3/v4 NameRenewed ABI: name(string), cost(uint256), expires(uint256)
     SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) AS cost,
-    CASE 
-        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- v2 controller
-            SAFE_CAST(CONCAT('0x', SUBSTR(data, 195, 64)) AS INT64)      -- v2 expires at offset 195
-        ELSE  -- v3/v4 controllers  
-            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)      -- v3/v4 expires at offset 131
-    END AS expires
+    -- All NameRenewed events (v2, v3, v4) have expires at offset 131
+    SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64) AS expires
 FROM `web3-publicgoods.ens_temp2.raw_controller_events`  
 WHERE topics[SAFE_OFFSET(0)] IN (
     '0x3da24c024582931cfaf8267d8ed24d13a82a8068d5bd337d30ec45cea4e506ae', -- NameRenewed v1
