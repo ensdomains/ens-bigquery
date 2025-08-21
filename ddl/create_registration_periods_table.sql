@@ -69,6 +69,25 @@ FROM (
     FROM `web3-publicgoods.ens_temp2.decoded_controller_NameRenewed`
     WHERE expires IS NOT NULL AND cost IS NOT NULL 
       AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps (before year 2033)
+    
+    UNION ALL
+    
+    -- Migration events from our decoded base registrar tables
+    SELECT
+      transaction_hash,
+      labelhash AS labelhash,
+      COALESCE(l.label, 'unknown') AS label,
+      NULL AS owner,  -- Not needed for migration processing
+      block_timestamp,
+      log_index,
+      expires,
+      0 AS cost,  -- Migrations were free
+      'migrated' AS event
+    FROM `web3-publicgoods.ens_temp2.decoded_base_registrar_NameMigrated` m
+    LEFT JOIN `web3-publicgoods.ens_temp2.labels` l
+      ON l.labelHash = FROM_HEX(SUBSTR(m.labelhash, 3))  -- Remove 0x prefix for comparison
+    WHERE expires IS NOT NULL 
+      AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps
   ) AS events
   WHERE labelhash IS NOT NULL
   -- Add the ens-manager QUALIFY filter to ensure positive time periods
