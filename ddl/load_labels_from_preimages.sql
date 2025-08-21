@@ -1,4 +1,4 @@
--- Load ENS labels from preimagedb.preimages.keccak256 into ens_temp.labels
+-- Load ENS labels from preimagedb.preimages.keccak256 into ens_temp2.labels
 -- This query converts text hashes to bytes and maps the columns appropriately
 
 INSERT INTO `web3-publicgoods.ens_temp2.labels` (labelHash, label)

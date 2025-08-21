@@ -1,12 +1,12 @@
 -- This script creates tables for storing Ethereum Name Service (ENS) data in BigQuery.
 -- See table_documentation.md for detailed column descriptions.
 
-CREATE OR REPLACE TABLE ens_temp.labels (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.labels` (
     labelHash BYTES,
     label STRING
 );
 
-CREATE OR REPLACE TABLE ens_temp.registry (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registry` (
     node BYTES,
     labelHash BYTES,
     parentNode BYTES,
@@ -15,7 +15,7 @@ CREATE OR REPLACE TABLE ens_temp.registry (
     name STRING
 );
 
-CREATE OR REPLACE TABLE ens_temp.resolvers (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolvers` (
     address BYTES,
     node BYTES,
     addr STRING,
@@ -25,7 +25,7 @@ CREATE OR REPLACE TABLE ens_temp.resolvers (
     reverseName STRING
 );
 
-CREATE OR REPLACE TABLE ens_temp.resolutions (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolutions` (
     node BYTES,
     name STRING,
     addr STRING,
@@ -33,12 +33,12 @@ CREATE OR REPLACE TABLE ens_temp.resolutions (
     addresses STRING
 );
 
-CREATE OR REPLACE TABLE ens_temp.reverse_records (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.reverse_records` (
     name STRING,
     address STRING
 );
 
-CREATE OR REPLACE TABLE ens_temp.registration_periods (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registration_periods` (
     labelhash STRING,
     event_timestamp TIMESTAMP,
     start_time TIMESTAMP,
