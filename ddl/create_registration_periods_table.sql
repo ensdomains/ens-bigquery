@@ -75,7 +75,7 @@ FROM (
     -- Migration events from our decoded base registrar tables
     SELECT
       transaction_hash,
-      labelhash AS labelhash,
+      m.labelhash AS labelhash,
       COALESCE(l.label, 'unknown') AS label,
       NULL AS owner,  -- Not needed for migration processing
       block_timestamp,

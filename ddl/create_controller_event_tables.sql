@@ -52,10 +52,16 @@ SELECT
     topics[SAFE_OFFSET(2)] AS owner,     -- address owner (indexed)
     -- Extract name using JavaScript UDF
     EXTRACT_NAME_FROM_ABI_DATA(data) AS name,
-    -- Extract cost from data (uint256 at offset 32) - accounting for 0x prefix
+    -- Extract cost and expires with version-specific logic
+    -- v2 controller (0x253553366da8546fc250f225fe3d25d0c782303b): baseCost at 67, expires at 195
+    -- v3/v4 controllers: cost at 67, expires at 131
     SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) AS cost,
-    -- Extract expires from data (uint256 at offset 64) - accounting for 0x prefix
-    SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64) AS expires
+    CASE 
+        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- v2 controller
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 195, 64)) AS INT64)      -- v2 expires at offset 195
+        ELSE  -- v3/v4 controllers  
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)      -- v3/v4 expires at offset 131
+    END AS expires
 FROM `web3-publicgoods.ens_temp2.raw_controller_events`
 WHERE topics[SAFE_OFFSET(0)] IN (
     '0xb3d987963d01b2f68493b4bdb130988f157ea43070d4ad840fee0466ed9370d9', -- NameRegistered v1
@@ -75,10 +81,16 @@ SELECT
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
     -- Extract name using JavaScript UDF
     EXTRACT_NAME_FROM_ABI_DATA(data) AS name,
-    -- Extract cost from data (uint256 at offset 32) - accounting for 0x prefix
+    -- Extract cost and expires with version-specific logic
+    -- v2 controller (0x253553366da8546fc250f225fe3d25d0c782303b): baseCost at 67, expires at 195
+    -- v3/v4 controllers: cost at 67, expires at 131
     SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) AS cost,
-    -- Extract expires from data (uint256 at offset 64) - accounting for 0x prefix
-    SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64) AS expires
+    CASE 
+        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- v2 controller
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 195, 64)) AS INT64)      -- v2 expires at offset 195
+        ELSE  -- v3/v4 controllers  
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)      -- v3/v4 expires at offset 131
+    END AS expires
 FROM `web3-publicgoods.ens_temp2.raw_controller_events`  
 WHERE topics[SAFE_OFFSET(0)] IN (
     '0x3da24c024582931cfaf8267d8ed24d13a82a8068d5bd337d30ec45cea4e506ae', -- NameRenewed v1
