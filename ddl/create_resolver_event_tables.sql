@@ -129,6 +129,26 @@ WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("Authorisation
 
 -- Resolver ContenthashChanged events (bytes32 node, bytes hash)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.decoded_resolver_ContenthashChanged` AS
+WITH extracted_contenthashes AS (
+  SELECT
+    transaction_hash,
+    block_number,
+    block_timestamp,
+    block_hash,
+    log_index,
+    address,
+    topics[SAFE_OFFSET(1)] AS node,
+    -- Raw ABI-encoded data
+    data AS content_hash,
+    -- Extract actual contenthash from ABI-encoded data
+    CASE 
+      WHEN LENGTH(data) > 130 AND CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) > 0 
+      THEN SUBSTR(data, 131, CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) * 2)
+      ELSE NULL
+    END AS raw_contenthash
+  FROM `web3-publicgoods.ens_temp2.raw_resolver_events`
+  WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("ContenthashChanged(bytes32,bytes)")
+)
 SELECT
   transaction_hash,
   block_number,
@@ -136,11 +156,22 @@ SELECT
   block_hash,
   log_index,
   address,
-  topics[SAFE_OFFSET(1)] AS node,
-  -- Parse data field for hash bytes (simplified)
-  data AS content_hash
-FROM `web3-publicgoods.ens_temp2.raw_resolver_events`
-WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("ContenthashChanged(bytes32,bytes)");
+  node,
+  content_hash,
+  raw_contenthash,
+  -- Decode contenthash to human-readable format (e.g., IPFS hash)
+  CASE 
+    WHEN raw_contenthash IS NOT NULL AND raw_contenthash != ''
+    THEN `web3-publicgoods.ens_temp2.decodeContentHashCustom`(raw_contenthash)
+    ELSE NULL
+  END AS decoded_contenthash,
+  -- Get content type (e.g., 'ipfs', 'ipns', 'swarm')  
+  CASE 
+    WHEN raw_contenthash IS NOT NULL AND raw_contenthash != ''
+    THEN `web3-publicgoods.ens_temp2.getContentHashCodec`(raw_contenthash)
+    ELSE NULL
+  END AS content_type
+FROM extracted_contenthashes;
 
 -- Resolver InterfaceChanged events (bytes32 node, bytes4 interfaceID, address implementer)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.decoded_resolver_InterfaceChanged` AS

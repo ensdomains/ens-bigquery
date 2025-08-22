@@ -31,7 +31,10 @@ Contains information from any contract that emits resolver events.
 | text_records | ARRAY<STRUCT<key STRING, value STRING>> | Array of text record key-value pairs for filtering and querying |
 | texts | STRING | CSV of text record keys (backward compatibility) |
 | addresses | STRING | JSON mapping of chain IDs and cointypes to addresses |
-| contenthash | STRING | The content hash for the node |
+| contenthash | STRING | The raw ABI-encoded content hash for the node |
+| raw_contenthash | STRING | The extracted contenthash after ABI decoding |
+| decoded_contenthash | STRING | Human-readable decoded contenthash (e.g., IPFS CID, Arweave hash, .onion address) |
+| content_type | STRING | Content type codec (e.g., 'ipfs', 'ipns', 'swarm', 'arweave', 'skynet', 'onion', 'onion3') |
 | reverseName | STRING | Name for reverse resolvers (not the name for this node) |
 
 ### Text Records Structure

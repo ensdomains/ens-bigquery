@@ -55,8 +55,15 @@ resolver_data_combined AS (
     COALESCE(txtr.text_keys_csv, '') AS texts,
     -- Multi-chain addresses as JSON string
     COALESCE(addr.addresses_json, '{}') AS addresses,
-    -- Content hash
+    -- Content hash (raw hex)
     ch.contenthash,
+    -- Extract raw contenthash from ABI-encoded data
+    CASE 
+      WHEN ch.contenthash IS NOT NULL AND LENGTH(ch.contenthash) > 130 
+           AND CAST(CONCAT('0x', SUBSTR(ch.contenthash, 67, 64)) AS INT64) > 0 
+      THEN SUBSTR(ch.contenthash, 131, CAST(CONCAT('0x', SUBSTR(ch.contenthash, 67, 64)) AS INT64) * 2)
+      ELSE NULL
+    END AS raw_contenthash,
     -- Reverse name (for reverse resolvers)
     rn.reverseName,
     -- Additional metadata
@@ -100,6 +107,20 @@ SELECT
   addresses,
   -- Keep contenthash as hex string
   contenthash,
+  -- Raw contenthash extracted from ABI encoding
+  raw_contenthash,
+  -- Decoded contenthash (human-readable format)
+  CASE 
+    WHEN raw_contenthash IS NOT NULL AND raw_contenthash != ''
+    THEN `web3-publicgoods.ens_temp2.decodeContentHashCustom`(raw_contenthash)
+    ELSE NULL
+  END AS decoded_contenthash,
+  -- Content type (codec)
+  CASE 
+    WHEN raw_contenthash IS NOT NULL AND raw_contenthash != ''
+    THEN `web3-publicgoods.ens_temp2.getContentHashCodec`(raw_contenthash)
+    ELSE NULL
+  END AS content_type,
   -- Keep reverseName as STRING
   reverseName
 FROM resolver_data_combined
@@ -108,6 +129,7 @@ WHERE addr IS NOT NULL
    OR ARRAY_LENGTH(text_records) > 0
    OR addresses != '{}'
    OR contenthash IS NOT NULL
+   OR raw_contenthash IS NOT NULL
    OR reverseName IS NOT NULL;
 
 -- Drop and recreate clustered table (clustering spec cannot be changed with CREATE OR REPLACE)
@@ -137,13 +159,9 @@ SELECT
     REGEXP_EXTRACT_ALL(addresses, r'"(\d+)":')
   ) AS address_count,
   contenthash,
-  -- Check if content hash is IPFS
-  CASE 
-    WHEN STARTS_WITH(contenthash, '0xe301') THEN 'ipfs'
-    WHEN STARTS_WITH(contenthash, '0xe401') THEN 'swarm'
-    WHEN contenthash IS NOT NULL THEN 'other'
-    ELSE NULL
-  END AS content_type,
+  raw_contenthash,
+  decoded_contenthash,
+  content_type,
   reverseName,
   -- Check if this is a reverse record (nodes under addr.reverse namespace)
   CASE
@@ -163,6 +181,11 @@ SELECT
   COUNT(CASE WHEN texts != '' THEN 1 END) AS nodes_with_text_records,
   COUNT(CASE WHEN addresses != '{}' THEN 1 END) AS nodes_with_multichain_addresses,
   COUNT(contenthash) AS nodes_with_contenthash,
+  COUNT(raw_contenthash) AS nodes_with_raw_contenthash,
+  COUNT(decoded_contenthash) AS nodes_with_decoded_contenthash,
+  COUNT(CASE WHEN content_type = 'ipfs' THEN 1 END) AS nodes_with_ipfs_content,
+  COUNT(CASE WHEN content_type = 'ipns' THEN 1 END) AS nodes_with_ipns_content,
+  COUNT(CASE WHEN content_type = 'swarm' THEN 1 END) AS nodes_with_swarm_content,
   COUNT(reverseName) AS nodes_with_reverse_name,
   CURRENT_TIMESTAMP() AS stats_generated_at
 FROM `web3-publicgoods.ens_temp2.resolvers`;
