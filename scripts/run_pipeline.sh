@@ -9,6 +9,7 @@ set -e  # Exit immediately on error
 # Default values
 PROJECT_ID="web3-publicgoods"
 DRY_RUN=false
+SKIP_SETUP=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DDL_DIR="$(dirname "$SCRIPT_DIR")/ddl"
 
@@ -23,21 +24,39 @@ for arg in "$@"; do
             DRY_RUN=true
             shift
             ;;
+        --skip-setup)
+            SKIP_SETUP=true
+            shift
+            ;;
         -h|--help)
-            echo "Usage: $0 [--project-id=PROJECT_ID] [--dry-run]"
+            echo "Usage: $0 [--project-id=PROJECT_ID] [--dry-run] [--skip-setup]"
             echo ""
             echo "Options:"
             echo "  --project-id=ID    BigQuery project ID (default: web3-publicgoods)"
             echo "  --dry-run          Validate queries without executing them"
+            echo "  --skip-setup       Skip create_tables.sql and load_labels_from_preimages.sql"
             echo "  --help             Show this help message"
             echo ""
-            echo "Pipeline stages (in execution order):"
-            echo "  1. create_ens_raw_events.sql"
-            echo "  2. create_resolver_event_tables.sql" 
-            echo "  3. create_state_resolver.sql"
-            echo "  4. create_aggregated_resolver.sql"
-            echo "  5. create_resolver_table.sql"
-            echo "  6. create_reverse_records_table.sql"
+            echo "Pipeline stages:"
+            echo ""
+            echo "Setup phase (automatic if needed, or use --skip-setup):"
+            echo "  - create_tables.sql (create empty table structures)"
+            echo "  - load_labels_from_preimages.sql (load 133M+ label preimages)"
+            echo ""
+            echo "Main pipeline (13 stages in order):"
+            echo "  1. create_functions.sql (all UDF functions - must be first!)"
+            echo "  2. create_ens_raw_events.sql"
+            echo "  3. create_controller_event_tables.sql"
+            echo "  4. create_base_registrar_event_tables.sql"
+            echo "  5. create_resolver_event_tables.sql" 
+            echo "  6. create_state_resolver.sql"
+            echo "  7. create_aggregated_resolver.sql"
+            echo "  8. create_resolver_table.sql"
+            echo "  9. create_aggregated_registry.sql"
+            echo " 10. create_registry_table.sql"
+            echo " 11. create_registration_periods_table.sql"
+            echo " 12. create_reverse_records_table.sql"
+            echo " 13. create_resolutions_table.sql"
             exit 0
             ;;
         *)
@@ -49,13 +68,22 @@ for arg in "$@"; do
 done
 
 # Pipeline files in correct execution order
+# Note: Assumes tables and functions already exist. 
+# If starting fresh, run create_tables.sql and create_functions.sql first
 PIPELINE_FILES=(
-    "create_ens_raw_events.sql"
-    "create_resolver_event_tables.sql"
-    "create_state_resolver.sql" 
-    "create_aggregated_resolver.sql"
-    "create_resolver_table.sql"
-    "create_reverse_records_table.sql"
+    "create_functions.sql"                    # All UDF functions (must be first!)
+    "create_ens_raw_events.sql"              # Extract raw events from Ethereum logs
+    "create_controller_event_tables.sql"      # Decode NameRegistered/NameRenewed events
+    "create_base_registrar_event_tables.sql"  # Decode NameMigrated events
+    "create_resolver_event_tables.sql"        # Decode all resolver events
+    "create_state_resolver.sql"               # Compute latest state per node
+    "create_aggregated_resolver.sql"          # Aggregate text records, addresses
+    "create_resolver_table.sql"               # Combine into main resolver table
+    "create_aggregated_registry.sql"          # Aggregate registry data
+    "create_registry_table.sql"               # Create registry table
+    "create_registration_periods_table.sql"   # Registration periods with USD costs
+    "create_reverse_records_table.sql"        # Create reverse records
+    "create_resolutions_table.sql"            # Join registry + resolvers
 )
 
 # Function to run a single DDL file
@@ -134,6 +162,40 @@ for file in "${PIPELINE_FILES[@]}"; do
     fi
 done
 
+# Run initial setup if not skipped
+if [[ "$SKIP_SETUP" == "false" ]]; then
+    echo ""
+    echo "🔧 Running initial setup..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Check if labels table exists and has data
+    LABELS_COUNT=$(bq query --use_legacy_sql=false --format=csv --project_id=$PROJECT_ID "SELECT COUNT(*) FROM \`$PROJECT_ID.ens_temp2.labels\`" 2>/dev/null | tail -1 || echo "0")
+    
+    if [[ "$LABELS_COUNT" == "0" ]] || [[ -z "$LABELS_COUNT" ]]; then
+        echo ""
+        echo "📋 Creating tables and loading labels..."
+        
+        # Create tables if they don't exist
+        if [[ -f "$DDL_DIR/create_tables.sql" ]]; then
+            echo "🎯 SETUP: create_tables.sql"
+            run_ddl_file "create_tables.sql"
+        fi
+        
+        # Load labels if table is empty
+        if [[ -f "$DDL_DIR/load_labels_from_preimages.sql" ]]; then
+            echo ""
+            echo "🎯 SETUP: load_labels_from_preimages.sql"
+            echo "⚠️  This will load 133M+ records from preimagedb and may take several minutes..."
+            run_ddl_file "load_labels_from_preimages.sql"
+        fi
+    else
+        echo "✅ Labels table exists with $LABELS_COUNT records"
+    fi
+else
+    echo ""
+    echo "⚠️  Skipping initial setup (--skip-setup flag provided)"
+fi
+
 # Run pipeline files in order
 echo ""
 echo "🎯 Starting pipeline execution..."
@@ -159,6 +221,9 @@ echo ""
 echo "📊 Check your tables:"
 echo "   bq ls $PROJECT_ID:ens_temp2"
 echo ""
-echo "🔍 Production tables:"
+echo "🔍 Key production tables:"
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.registry\\\`\""
 echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.resolvers\\\`\""
 echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.reverse_records\\\`\""
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.registration_periods\\\`\""
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.resolutions\\\`\""
