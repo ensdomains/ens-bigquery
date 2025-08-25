@@ -76,14 +76,42 @@ Stores reverse records generated from resolutions.
 | address | STRING | The corresponding Ethereum address |
 
 ## Table: registration_periods
-Contains computed data for name registration periods.
+Contains computed data for name registration periods with USD cost derivations.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | labelhash | STRING | The hash of the label |
+| label | STRING | The human-readable ENS label |
 | event_timestamp | TIMESTAMP | Time at which the registration/renewal occurred |
 | start_time | TIMESTAMP | Time at which this registration period begins |
 | end_time | TIMESTAMP | Time at which this registration period ends |
 | cost | FLOAT64 | Cost in ETH for this registration period |
-| premium | FLOAT64 | Premium cost in ETH for this registration period |
 | event | STRING | The type of event: ['registered', 'renewed', 'migrated'] |
+| duration_years | FLOAT64 | Registration duration in years (calculated from start_time to end_time) |
+| base_cost_usd_per_year | FLOAT64 | Base cost per year in USD: $5 (5+ chars), $160 (4 chars), $640 (3 chars) |
+| base_cost_usd | FLOAT64 | Total base cost in USD (duration_years × base_cost_usd_per_year) |
+| premium | FLOAT64 | Premium cost in ETH for this registration period |
+| eth_usd_rate | FLOAT64 | ETH-USD exchange rate from Uniswap USDC-ETH pair at registration time |
+| premium_usd | FLOAT64 | Premium cost in USD (premium × eth_usd_rate) |
+
+### USD Cost Methodology
+
+The table uses external Uniswap price data to calculate accurate USD costs for ENS registrations:
+
+**Base Pricing (per year):**
+- 3 characters: $640/year
+- 4 characters: $160/year  
+- 5+ characters: $5/year
+
+**Data Sources:**
+- ETH-USD rates: `blockchain-etl.ethereum_uniswap.UniswapV2Pair_event_Sync` (USDC-ETH pair: 0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc)
+- Controller v4: Directly provides `baseCost` and `premium` fields
+- Controller v1-v3: Only provides combined `cost`, premium derived as: `cost - (theoretical_base_cost_usd / eth_usd_rate)`
+
+**Calculations:**
+- `base_cost_usd = base_cost_usd_per_year × duration_years`
+- `eth_usd_rate = 1e12 × USDC_reserve / ETH_reserve` (from Uniswap)
+- `premium = total_cost_eth - theoretical_base_cost_eth` (for v1-v3)
+- `premium_usd = premium × eth_usd_rate`
+
+This methodology provides accurate historical USD costs using real-time market prices from Uniswap, spanning from ENS permanent registrar launch (May 2019) to present.

@@ -16,12 +16,16 @@ CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registry` (
 );
 
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolvers` (
-    address BYTES,
-    node BYTES,
+    address STRING,
+    node STRING,
     addr STRING,
+    text_records ARRAY<STRUCT<key STRING, value STRING>>,
     texts STRING,
     addresses STRING,
-    contenthash BYTES,
+    contenthash STRING,
+    raw_contenthash STRING,
+    decoded_contenthash STRING,
+    content_type STRING,
     reverseName STRING
 );
 
@@ -40,10 +44,16 @@ CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.reverse_records` (
 
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registration_periods` (
     labelhash STRING,
+    label STRING,
     event_timestamp TIMESTAMP,
     start_time TIMESTAMP,
     end_time TIMESTAMP,
     cost FLOAT64,
+    event STRING,
+    duration_years FLOAT64,
+    base_cost_usd_per_year FLOAT64,
+    base_cost_usd FLOAT64,
     premium FLOAT64,
-    event STRING
+    eth_usd_rate FLOAT64,
+    premium_usd FLOAT64
 );
