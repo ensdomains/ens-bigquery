@@ -1,5 +1,6 @@
 -- Create decoded controller event tables
--- Phase 1: Decode NameRegistered and NameRenewed events from raw controller events
+-- Phase 1: Decode NameRegistered and NameRenewed events from ALL controller versions
+-- Handles Controller v1-v3 (single cost field) and Controller v4 (separate baseCost/premium fields)
 
 -- Create UDF for name extraction from ABI-encoded data
 CREATE TEMP FUNCTION EXTRACT_NAME_FROM_ABI_DATA(data STRING)
@@ -52,21 +53,40 @@ SELECT
     topics[SAFE_OFFSET(2)] AS owner,     -- address owner (indexed)
     -- Extract name using JavaScript UDF
     EXTRACT_NAME_FROM_ABI_DATA(data) AS name,
-    -- Extract cost and expires with version-specific logic
-    -- v2 controller (0x253553366da8546fc250f225fe3d25d0c782303b): baseCost at 67, expires at 195
-    -- v3/v4 controllers: cost at 67, expires at 131
-    SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) AS cost,
+    -- Extract total cost (consistent semantic across all versions)
+    -- Controller v1-v3: Single cost field at offset 67 (total cost including any premium)
+    -- Controller v4: Calculate total as baseCost + premium
     CASE 
-        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- v2 controller
-            SAFE_CAST(CONCAT('0x', SUBSTR(data, 195, 64)) AS INT64)      -- v2 expires at offset 195
-        ELSE  -- v3/v4 controllers  
-            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)      -- v3/v4 expires at offset 131
+        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- Controller v4
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) +      -- baseCost at offset 67
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)        -- + premium at offset 131
+        ELSE  -- Controller v1-v3
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64)        -- cost (total) at offset 67
+    END AS cost,
+    -- Extract baseCost (only for Controller v4)
+    CASE 
+        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- Controller v4
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64)        -- baseCost at offset 67
+        ELSE NULL
+    END AS base_cost,
+    -- Extract premium (only for Controller v4)
+    CASE 
+        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- Controller v4
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)       -- premium at offset 131
+        ELSE NULL
+    END AS premium,
+    -- Extract expires with version-specific logic
+    CASE 
+        WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- Controller v4
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 195, 64)) AS INT64)       -- expires at offset 195
+        ELSE  -- Controller v1-v3
+            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)       -- expires at offset 131
     END AS expires
 FROM `web3-publicgoods.ens_temp2.raw_controller_events`
 WHERE topics[SAFE_OFFSET(0)] IN (
     '0xb3d987963d01b2f68493b4bdb130988f157ea43070d4ad840fee0466ed9370d9', -- NameRegistered v1
-    '0x69e37f151eb98a09618ddaa80c8cfaf1ce5996867c489f45b555b412271ebf27', -- NameRegistered v2  
-    '0xca6abbe9d7f11422cb6ca7629fbf6fe9efb1c621f71ce8f02b9f2a230097404f'  -- NameRegistered v3/v4
+    '0x69e37f151eb98a09618ddaa80c8cfaf1ce5996867c489f45b555b412271ebf27', -- NameRegistered v4 (new signature)
+    '0xca6abbe9d7f11422cb6ca7629fbf6fe9efb1c621f71ce8f02b9f2a230097404f'  -- NameRegistered v1-v3
 );
 
 -- Create decoded NameRenewed events table
@@ -81,14 +101,14 @@ SELECT
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
     -- Extract name using JavaScript UDF
     EXTRACT_NAME_FROM_ABI_DATA(data) AS name,
-    -- Extract cost and expires - NameRenewed ABI is consistent across all versions
-    -- v2 NameRenewed ABI: name(string), cost(uint256), expires(uint256) - same as v3/v4!
-    -- v3/v4 NameRenewed ABI: name(string), cost(uint256), expires(uint256)
+    -- Extract cost and expires - NameRenewed ABI is consistent across all controller versions
+    -- All controllers use: name(string), cost(uint256), expires(uint256)
     SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) AS cost,
-    -- All NameRenewed events (v2, v3, v4) have expires at offset 131
-    SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64) AS expires
+    -- All NameRenewed events have expires at offset 131
+    SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64) AS expires,
+    -- Note: NameRenewed events do NOT have separate base_cost/premium fields
+    -- The cost field represents the total renewal cost
+    NULL AS base_cost,
+    NULL AS premium
 FROM `web3-publicgoods.ens_temp2.raw_controller_events`  
-WHERE topics[SAFE_OFFSET(0)] IN (
-    '0x3da24c024582931cfaf8267d8ed24d13a82a8068d5bd337d30ec45cea4e506ae', -- NameRenewed v1
-    '0x9b87a00e30f1ac65d898f070f8a3488fe60517182d0a2098e1b4b93a54aa9bd6'  -- NameRenewed v2+
-);
+WHERE topics[SAFE_OFFSET(0)] = '0x3da24c024582931cfaf8267d8ed24d13a82a8068d5bd337d30ec45cea4e506ae';
