@@ -5,24 +5,7 @@
 -- REGISTRY AGGREGATED TABLES
 -- ======================
 
--- Create UDF for computing ENS nodes
-CREATE TEMP FUNCTION COMPUTE_ENS_NODE(parent_node STRING, label_hash STRING)
-RETURNS STRING
-LANGUAGE js
-OPTIONS (
-  library=["gs://blockchain-etl-bigquery/ethers.js"])
-AS r"""
-  var utils = ethers.utils;
-  if(parent_node === null || label_hash === null) return null;
-  try{
-    var parent = parent_node.startsWith('0x') ? parent_node.slice(2) : parent_node;
-    var label = label_hash.startsWith('0x') ? label_hash.slice(2) : label_hash;
-    var combined = '0x' + parent + label;
-    return utils.keccak256(combined);
-  }catch(e){
-    return null;
-  }
-""";
+-- Note: COMPUTE_ENS_NODE function is defined in create_functions.sql
 
 -- Node hierarchy and parent-child relationships
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.agg_registry_hierarchy` AS
@@ -55,11 +38,11 @@ parent_child_mapping AS (
     SELECT 
       node as parent_node,
       label as label_hash,
-      COMPUTE_ENS_NODE(node, label) as child_node,
+      `web3-publicgoods.ens_temp2.COMPUTE_ENS_NODE`(node, label) as child_node,
       owner as initial_owner,
       block_timestamp as created_at,
       ROW_NUMBER() OVER (
-        PARTITION BY COMPUTE_ENS_NODE(node, label)  -- Partition by child node
+        PARTITION BY `web3-publicgoods.ens_temp2.COMPUTE_ENS_NODE`(node, label)  -- Partition by child node
         ORDER BY block_timestamp, log_index
       ) as creation_number
     FROM deduplicated_events

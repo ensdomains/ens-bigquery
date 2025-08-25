@@ -2,19 +2,7 @@
 -- This table maps Ethereum addresses to their primary ENS names
 -- Based on the query from ens-manager.names.reverse_records
 
--- Create namehash function using ethers.js
-CREATE TEMP FUNCTION
-  NAMEHASH(data STRING)
-  RETURNS STRING
-  LANGUAGE js AS """
-    try {
-      return ethers.utils.namehash(data);
-    } catch(e) {
-        return null;
-    }
-"""
-OPTIONS
-  ( library="gs://blockchain-etl-bigquery/ethers.js" );
+-- Note: NAMEHASH function is defined in create_functions.sql
 
 -- Create reverse records using the proper ENS logic
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.reverse_records` AS
@@ -58,13 +46,13 @@ SELECT DISTINCT
 FROM resolved_addrs
 -- Join resolvers where the reverse node matches addr.reverse pattern
 INNER JOIN resolvers 
-  ON resolvers.node = NAMEHASH(CONCAT(SUBSTR(resolved_addrs.addr, 3), ".addr.reverse"))
+  ON resolvers.node = `web3-publicgoods.ens_temp2.NAMEHASH`(CONCAT(SUBSTR(resolved_addrs.addr, 3), ".addr.reverse"))
 -- Join names to get the actual ENS name
 INNER JOIN names 
   ON names.resolver = resolvers.resolver 
   AND names.node = resolvers.node
 -- Validate that forward resolution matches (prevents invalid reverse records)
-WHERE resolved_addrs.node = NAMEHASH(names.name);
+WHERE resolved_addrs.node = `web3-publicgoods.ens_temp2.NAMEHASH`(names.name);
 
 -- Create an unvalidated version without the validation step for debugging
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.debug_reverse_records_unvalidated` AS

@@ -4,64 +4,7 @@
 -- RESOLVER EVENTS
 -- ======================
 
--- Create ABI decoder function for strings
-CREATE TEMP FUNCTION
-  DECODE_ABI_STRING(data STRING, param_index INT64)
-  RETURNS STRING
-  LANGUAGE js AS """
-    try {
-      if (!data || data.length < 2) return null;
-      
-      // Remove 0x prefix
-      const hex = data.substr(2);
-      
-      // Get the offset for the parameter (64 chars per offset)
-      const offsetStart = (param_index - 1) * 64;
-      const offsetHex = hex.substr(offsetStart, 64);
-      const offset = parseInt(offsetHex, 16);
-      
-      // Convert byte offset to hex position (2 hex chars per byte)
-      const dataStart = offset * 2;
-      
-      // Get length (next 64 hex chars after offset)
-      const lengthHex = hex.substr(dataStart, 64);
-      const length = parseInt(lengthHex, 16);
-      
-      if (length === 0) return '';
-      
-      // Get the actual string data
-      const stringStart = dataStart + 64;
-      const stringHex = hex.substr(stringStart, length * 2);
-      
-      // Convert hex to UTF-8 string
-      let result = '';
-      for (let i = 0; i < stringHex.length; i += 2) {
-        const byte = parseInt(stringHex.substr(i, 2), 16);
-        if (byte !== 0) {  // Skip null bytes
-          result += String.fromCharCode(byte);
-        }
-      }
-      
-      return result;
-    } catch(e) {
-      return null;
-    }
-""";
-
--- Create function to decode boolean from data
-CREATE TEMP FUNCTION
-  DECODE_ABI_BOOL(data STRING)
-  RETURNS BOOL
-  LANGUAGE js AS """
-    try {
-      if (!data || data.length < 66) return null;
-      const hex = data.substr(2);
-      const boolHex = hex.substr(hex.length - 2, 2);
-      return parseInt(boolHex, 16) === 1;
-    } catch(e) {
-      return null;
-    }
-""";
+-- Note: DECODE_ABI_STRING and DECODE_ABI_BOOL functions are defined in create_functions.sql
 
 -- Resolver ABIChanged events (bytes32 node, uint256 contentType)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.decoded_resolver_ABIChanged` AS
@@ -122,7 +65,7 @@ SELECT
   topics[SAFE_OFFSET(2)] AS owner,
   topics[SAFE_OFFSET(3)] AS target,
   -- Decode boolean from data field
-  DECODE_ABI_BOOL(data) AS isAuthorised,
+  `web3-publicgoods.ens_temp2.DECODE_ABI_BOOL`(data) AS isAuthorised,
   data AS raw_data
 FROM `web3-publicgoods.ens_temp2.raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("AuthorisationChanged(bytes32,address,address,bool)");
@@ -199,7 +142,7 @@ SELECT
   address,
   topics[SAFE_OFFSET(1)] AS node,
   -- Decode string name from data field
-  DECODE_ABI_STRING(data, 1) AS domain_name,
+  `web3-publicgoods.ens_temp2.DECODE_ABI_STRING`(data, 1) AS domain_name,
   data AS raw_data
 FROM `web3-publicgoods.ens_temp2.raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NameChanged(bytes32,string)");
@@ -232,7 +175,7 @@ SELECT
   topics[SAFE_OFFSET(1)] AS node,
   topics[SAFE_OFFSET(2)] AS indexedKey,
   -- Decode the key string from data field
-  DECODE_ABI_STRING(data, 1) AS text_key,
+  `web3-publicgoods.ens_temp2.DECODE_ABI_STRING`(data, 1) AS text_key,
   'v3' AS version,
   data AS raw_data
 FROM `web3-publicgoods.ens_temp2.raw_resolver_events`
@@ -250,9 +193,9 @@ SELECT
   topics[SAFE_OFFSET(1)] AS node,
   topics[SAFE_OFFSET(2)] AS indexedKey,
   -- Decode key from first string parameter
-  DECODE_ABI_STRING(data, 1) AS text_key,
+  `web3-publicgoods.ens_temp2.DECODE_ABI_STRING`(data, 1) AS text_key,
   -- Decode value from second string parameter  
-  DECODE_ABI_STRING(data, 2) AS text_value,
+  `web3-publicgoods.ens_temp2.DECODE_ABI_STRING`(data, 2) AS text_value,
   'v4' AS version,
   data AS raw_data
 FROM `web3-publicgoods.ens_temp2.raw_resolver_events`

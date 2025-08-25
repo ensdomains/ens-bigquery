@@ -2,42 +2,7 @@
 -- Phase 1: Decode NameRegistered and NameRenewed events from ALL controller versions
 -- Handles Controller v1-v3 (single cost field) and Controller v4 (separate baseCost/premium fields)
 
--- Create UDF for name extraction from ABI-encoded data
-CREATE TEMP FUNCTION EXTRACT_NAME_FROM_ABI_DATA(data STRING)
-RETURNS STRING
-LANGUAGE js AS """
-  if (!data || data.length < 322) return 'unknown';
-  
-  // Remove 0x prefix if present
-  const cleanData = data.startsWith('0x') ? data.slice(2) : data;
-  
-  // Check if this follows the expected ABI encoding pattern
-  // First 32 bytes should be 0x60 (pointer to string data)
-  const stringPointer = cleanData.substr(0, 64);
-  if (stringPointer !== '0000000000000000000000000000000000000000000000000000000000000060') {
-    return 'unknown';
-  }
-  
-  // Extract string length from bytes 96-127 (hex positions 192-255)
-  const lengthHex = cleanData.substr(192, 64);
-  const nameLength = parseInt(lengthHex, 16);
-  
-  if (nameLength > 100 || nameLength === 0) return 'unknown'; // Sanity check
-  
-  // Extract name data starting at position 256 
-  const nameHex = cleanData.substr(256, nameLength * 2);
-  
-  // Convert hex to ASCII string
-  let name = '';
-  for (let i = 0; i < nameHex.length; i += 2) {
-    const charCode = parseInt(nameHex.substr(i, 2), 16);
-    if (charCode >= 32 && charCode <= 126) { // Printable ASCII
-      name += String.fromCharCode(charCode);
-    }
-  }
-  
-  return name || 'unknown';
-""";
+-- Note: EXTRACT_NAME_FROM_ABI_DATA function is defined in create_functions.sql
 
 
 -- Create decoded NameRegistered events table
@@ -52,7 +17,7 @@ SELECT
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
     topics[SAFE_OFFSET(2)] AS owner,     -- address owner (indexed)
     -- Extract name using JavaScript UDF
-    EXTRACT_NAME_FROM_ABI_DATA(data) AS name,
+    `web3-publicgoods.ens_temp2.EXTRACT_NAME_FROM_ABI_DATA`(data) AS name,
     -- Extract total cost (consistent semantic across all versions)
     -- Controller v1-v3: Single cost field at offset 67 (total cost including any premium)
     -- Controller v4: Calculate total as baseCost + premium
@@ -102,7 +67,7 @@ SELECT
     -- Indexed parameters from topics
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
     -- Extract name using JavaScript UDF
-    EXTRACT_NAME_FROM_ABI_DATA(data) AS name,
+    `web3-publicgoods.ens_temp2.EXTRACT_NAME_FROM_ABI_DATA`(data) AS name,
     -- Extract cost and expires - NameRenewed ABI is consistent across all controller versions
     -- All controllers use: name(string), cost(uint256), expires(uint256)
     SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) AS cost,
