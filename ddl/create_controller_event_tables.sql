@@ -58,8 +58,10 @@ SELECT
     -- Controller v4: Calculate total as baseCost + premium
     CASE 
         WHEN address = '0x253553366da8546fc250f225fe3d25d0c782303b' THEN  -- Controller v4
-            SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64) +      -- baseCost at offset 67
-            SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)        -- + premium at offset 131
+            SAFE_ADD(
+                SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64),   -- baseCost at offset 67
+                SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)   -- + premium at offset 131
+            )
         ELSE  -- Controller v1-v3
             SAFE_CAST(CONCAT('0x', SUBSTR(data, 67, 64)) AS INT64)        -- cost (total) at offset 67
     END AS cost,
