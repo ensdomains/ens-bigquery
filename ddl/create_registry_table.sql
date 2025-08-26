@@ -1,14 +1,14 @@
 -- Create ENS registry table using state tables (consistent with resolver approach)
 -- This table tracks ownership, resolvers, and builds human-readable names
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registry` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.registry` AS
 WITH all_nodes AS (
   -- Get all unique nodes from state tables
-  SELECT DISTINCT node FROM `web3-publicgoods.ens_temp2.state_registry_owners`
+  SELECT DISTINCT node FROM `web3-publicgoods.ens.state_registry_owners`
   UNION DISTINCT
-  SELECT DISTINCT node FROM `web3-publicgoods.ens_temp2.state_registry_resolvers`
+  SELECT DISTINCT node FROM `web3-publicgoods.ens.state_registry_resolvers`
   UNION DISTINCT  
-  SELECT DISTINCT node FROM `web3-publicgoods.ens_temp2.state_registry_labels`
+  SELECT DISTINCT node FROM `web3-publicgoods.ens.state_registry_labels`
 ),
 registry_combined AS (
   SELECT 
@@ -27,16 +27,16 @@ registry_combined AS (
   FROM all_nodes an
   
   -- Join with state tables
-  LEFT JOIN `web3-publicgoods.ens_temp2.state_registry_owners` so
+  LEFT JOIN `web3-publicgoods.ens.state_registry_owners` so
     ON an.node = so.node
     
-  LEFT JOIN `web3-publicgoods.ens_temp2.state_registry_resolvers` sr
+  LEFT JOIN `web3-publicgoods.ens.state_registry_resolvers` sr
     ON an.node = sr.node
     
-  LEFT JOIN `web3-publicgoods.ens_temp2.state_registry_labels` sl
+  LEFT JOIN `web3-publicgoods.ens.state_registry_labels` sl
     ON an.node = sl.node
     
-  LEFT JOIN `web3-publicgoods.ens_temp2.agg_registry_hierarchy` ah
+  LEFT JOIN `web3-publicgoods.ens.agg_registry_hierarchy` ah
     ON an.node = ah.node
 ),
 -- Build hierarchical names with parent lookups

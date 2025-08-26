@@ -8,7 +8,7 @@
 -- Note: COMPUTE_ENS_NODE function is defined in create_functions.sql
 
 -- Node hierarchy and parent-child relationships
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.agg_registry_hierarchy` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.agg_registry_hierarchy` AS
 WITH deduplicated_events AS (
   -- Deduplicate NewOwner events (some transactions emit duplicate events)
   SELECT 
@@ -23,7 +23,7 @@ WITH deduplicated_events AS (
       PARTITION BY node, label, block_number, transaction_hash 
       ORDER BY log_index
     ) as rn
-  FROM `web3-publicgoods.ens_temp2.decoded_registry_NewOwner`
+  FROM `web3-publicgoods.ens.decoded_registry_NewOwner`
 ),
 parent_child_mapping AS (
   -- Build actual parent-child relationships from deduplicated NewOwner events
@@ -38,11 +38,11 @@ parent_child_mapping AS (
     SELECT 
       node as parent_node,
       label as label_hash,
-      `web3-publicgoods.ens_temp2.COMPUTE_ENS_NODE`(node, label) as child_node,
+      `web3-publicgoods.ens.COMPUTE_ENS_NODE`(node, label) as child_node,
       owner as initial_owner,
       block_timestamp as created_at,
       ROW_NUMBER() OVER (
-        PARTITION BY `web3-publicgoods.ens_temp2.COMPUTE_ENS_NODE`(node, label)  -- Partition by child node
+        PARTITION BY `web3-publicgoods.ens.COMPUTE_ENS_NODE`(node, label)  -- Partition by child node
         ORDER BY block_timestamp, log_index
       ) as creation_number
     FROM deduplicated_events
@@ -76,7 +76,7 @@ hierarchy_with_names AS (
     -- Full hierarchical names will be built in a separate step
     COALESCE(l.label, CONCAT('[', SUBSTR(label_hash, 3, 8), '...]')) as simple_name
   FROM parent_child_mapping pcm
-  LEFT JOIN `web3-publicgoods.ens_temp2.labels` l
+  LEFT JOIN `web3-publicgoods.ens.labels` l
     ON pcm.label_hash = CONCAT('0x', TO_HEX(l.labelHash))
 ),
 -- For now, store simple names in hierarchy table
@@ -110,20 +110,20 @@ SELECT
 FROM names_with_parents;
 
 -- Registry activity and ownership history  
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.agg_registry_activity` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.agg_registry_activity` AS
 WITH all_events AS (
   SELECT node, owner, block_timestamp, 'NewOwner' AS event_type
-  FROM `web3-publicgoods.ens_temp2.decoded_registry_NewOwner`
+  FROM `web3-publicgoods.ens.decoded_registry_NewOwner`
   
   UNION ALL
   
   SELECT node, owner, block_timestamp, 'Transfer' AS event_type  
-  FROM `web3-publicgoods.ens_temp2.decoded_registry_Transfer`
+  FROM `web3-publicgoods.ens.decoded_registry_Transfer`
   
   UNION ALL
   
   SELECT node, resolver AS owner, block_timestamp, 'NewResolver' AS event_type
-  FROM `web3-publicgoods.ens_temp2.decoded_registry_NewResolver`
+  FROM `web3-publicgoods.ens.decoded_registry_NewResolver`
 ),
 node_activity AS (
   SELECT 

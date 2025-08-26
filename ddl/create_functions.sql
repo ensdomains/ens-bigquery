@@ -8,7 +8,7 @@
 -- 1. ENS Node Computation Function
 -- ========================================
 -- Computes ENS node hash from parent node and label hash
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.COMPUTE_ENS_NODE`(parent_node STRING, label_hash STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.COMPUTE_ENS_NODE`(parent_node STRING, label_hash STRING)
 RETURNS STRING
 LANGUAGE js
 OPTIONS (
@@ -30,7 +30,7 @@ AS r"""
 -- 2. ENS Namehash Function
 -- ========================================
 -- Computes namehash for ENS names (used for reverse records)
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.NAMEHASH`(data STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.NAMEHASH`(data STRING)
 RETURNS STRING
 LANGUAGE js
 OPTIONS (
@@ -47,7 +47,7 @@ AS """
 -- 3. ABI String Decoder Function
 -- ========================================
 -- Decodes ABI-encoded string parameters from event data
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.DECODE_ABI_STRING`(data STRING, param_index INT64)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.DECODE_ABI_STRING`(data STRING, param_index INT64)
 RETURNS STRING
 LANGUAGE js AS """
   try {
@@ -93,7 +93,7 @@ LANGUAGE js AS """
 -- 4. ABI Boolean Decoder Function
 -- ========================================
 -- Decodes ABI-encoded boolean values from event data
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.DECODE_ABI_BOOL`(data STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.DECODE_ABI_BOOL`(data STRING)
 RETURNS BOOL
 LANGUAGE js AS """
   try {
@@ -110,7 +110,7 @@ LANGUAGE js AS """
 -- 5. Extract Name from Controller Events
 -- ========================================
 -- Extracts ENS name from ABI-encoded NameRegistered/NameRenewed event data
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.EXTRACT_NAME_FROM_ABI_DATA`(data STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.EXTRACT_NAME_FROM_ABI_DATA`(data STRING)
 RETURNS STRING
 LANGUAGE js AS """
   if (!data || data.length < 322) return 'unknown';
@@ -151,7 +151,7 @@ LANGUAGE js AS """
 -- ========================================
 -- Decodes ENS content hashes to human-readable format
 -- Supports IPFS, IPNS, Swarm, Arweave, Skynet, Onion
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.decodeContentHashCustom`(contentHash STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.decodeContentHashCustom`(contentHash STRING)
 RETURNS STRUCT<decoded STRING, content_type STRING>
 LANGUAGE js AS r"""
   if (!contentHash || contentHash === '0x' || contentHash === '') {
@@ -312,7 +312,7 @@ LANGUAGE js AS r"""
 -- These functions use the official ENS content-hash library
 -- Note: May have compatibility issues with BigQuery JavaScript runtime
 
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.decodeContentHash`(contentHash STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.decodeContentHash`(contentHash STRING)
 RETURNS STRING
 LANGUAGE js
 OPTIONS (
@@ -325,7 +325,7 @@ AS r"""
   }
 """;
 
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.encodeContentHash`(codec STRING, value STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.encodeContentHash`(codec STRING, value STRING)
 RETURNS STRING
 LANGUAGE js
 OPTIONS (
@@ -334,7 +334,7 @@ AS r"""
   return contentHashLib.encode(codec, value);
 """;
 
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.getContentHashCodec`(contentHash STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.getContentHashCodec`(contentHash STRING)
 RETURNS STRING
 LANGUAGE js
 OPTIONS (

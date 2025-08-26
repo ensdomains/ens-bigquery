@@ -117,7 +117,7 @@ When creating event tables, the following column names were mapped to avoid BigQ
 6. `create_reverse_records_table.sql` - Generate reverse records → `reverse_records` (production)
 
 **Run command:** `./scripts/run_pipeline.sh`
-**Target dataset:** `web3-publicgoods.ens_temp2.*`
+**Target dataset:** `web3-publicgoods.ens.*`
 
 ========================
 BIGQUERY CODE SNIPPETS

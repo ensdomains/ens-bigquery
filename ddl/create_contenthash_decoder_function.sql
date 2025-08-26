@@ -2,7 +2,7 @@
 -- This function is compatible with BigQuery's JavaScript runtime
 -- and handles all content types: IPFS, IPNS, Swarm, Arweave, Skynet, Onion v2/v3
 
-CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.decodeContentHashCustom`(contentHash STRING)
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.decodeContentHashCustom`(contentHash STRING)
 RETURNS STRING
 LANGUAGE js AS """
   try {

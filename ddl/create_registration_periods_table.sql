@@ -3,7 +3,7 @@
 -- Phase 3: Add USD cost calculations using ENS pricing structure
 -- Based on ens-manager.registrations.registration_periods_view structure
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registration_periods` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.registration_periods` AS
 WITH base_registration_periods AS (
 SELECT
   labelhash,
@@ -61,7 +61,7 @@ SELECT
       premium,
       'registered' AS event,
       address
-    FROM `web3-publicgoods.ens_temp2.decoded_controller_NameRegistered`
+    FROM `web3-publicgoods.ens.decoded_controller_NameRegistered`
     WHERE expires IS NOT NULL AND cost IS NOT NULL 
       AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps (before year 2033)
     
@@ -81,7 +81,7 @@ SELECT
       NULL AS premium,     -- Renewals don't have separate premium
       'renewed' AS event,
       address
-    FROM `web3-publicgoods.ens_temp2.decoded_controller_NameRenewed`
+    FROM `web3-publicgoods.ens.decoded_controller_NameRenewed`
     WHERE expires IS NOT NULL AND cost IS NOT NULL 
       AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps (before year 2033)
     
@@ -101,8 +101,8 @@ SELECT
       NULL AS premium,
       'migrated' AS event,
       '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85' as controller_address  -- BaseRegistrar address
-    FROM `web3-publicgoods.ens_temp2.decoded_base_registrar_NameMigrated` m
-    LEFT JOIN `web3-publicgoods.ens_temp2.labels` l
+    FROM `web3-publicgoods.ens.decoded_base_registrar_NameMigrated` m
+    LEFT JOIN `web3-publicgoods.ens.labels` l
       ON l.labelHash = FROM_HEX(SUBSTR(m.labelhash, 3))  -- Remove 0x prefix for comparison
     WHERE expires IS NOT NULL 
       AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps

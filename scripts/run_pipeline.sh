@@ -43,20 +43,22 @@ for arg in "$@"; do
             echo "  - create_tables.sql (create empty table structures)"
             echo "  - load_labels_from_preimages.sql (load 133M+ label preimages)"
             echo ""
-            echo "Main pipeline (13 stages in order):"
+            echo "Main pipeline (15 stages in order):"
             echo "  1. create_functions.sql (all UDF functions - must be first!)"
             echo "  2. create_ens_raw_events.sql"
             echo "  3. create_controller_event_tables.sql"
-            echo "  4. create_base_registrar_event_tables.sql"
+            echo "  4. create_base_registrar_events.sql"
             echo "  5. create_resolver_event_tables.sql" 
-            echo "  6. create_state_resolver.sql"
-            echo "  7. create_aggregated_resolver.sql"
-            echo "  8. create_resolver_table.sql"
-            echo "  9. create_aggregated_registry.sql"
-            echo " 10. create_registry_table.sql"
-            echo " 11. create_registration_periods_table.sql"
-            echo " 12. create_reverse_records_table.sql"
-            echo " 13. create_resolutions_table.sql"
+            echo "  6. create_registry_event_tables.sql"
+            echo "  7. create_state_resolver.sql"
+            echo "  8. create_state_registry.sql"
+            echo "  9. create_aggregated_resolver.sql"
+            echo " 10. create_resolver_table.sql"
+            echo " 11. create_aggregated_registry.sql"
+            echo " 12. create_registry_table.sql"
+            echo " 13. create_registration_periods_table.sql"
+            echo " 14. create_reverse_records_table.sql"
+            echo " 15. create_resolutions_table.sql"
             exit 0
             ;;
         *)
@@ -74,9 +76,11 @@ PIPELINE_FILES=(
     "create_functions.sql"                    # All UDF functions (must be first!)
     "create_ens_raw_events.sql"              # Extract raw events from Ethereum logs
     "create_controller_event_tables.sql"      # Decode NameRegistered/NameRenewed events
-    "create_base_registrar_event_tables.sql"  # Decode NameMigrated events
+    "create_base_registrar_events.sql"        # Decode NameMigrated events
     "create_resolver_event_tables.sql"        # Decode all resolver events
+    "create_registry_event_tables.sql"        # Decode registry events (NewOwner, Transfer, etc.)
     "create_state_resolver.sql"               # Compute latest state per node
+    "create_state_registry.sql"               # Compute latest registry state per node
     "create_aggregated_resolver.sql"          # Aggregate text records, addresses
     "create_resolver_table.sql"               # Combine into main resolver table
     "create_aggregated_registry.sql"          # Aggregate registry data
@@ -169,7 +173,12 @@ if [[ "$SKIP_SETUP" == "false" ]]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
     # Check if labels table exists and has data
-    LABELS_COUNT=$(bq query --use_legacy_sql=false --format=csv --project_id=$PROJECT_ID "SELECT COUNT(*) FROM \`$PROJECT_ID.ens_temp2.labels\`" 2>/dev/null | tail -1 || echo "0")
+    LABELS_COUNT=$(bq query --use_legacy_sql=false --format=csv --project_id=$PROJECT_ID "SELECT COUNT(*) FROM \`$PROJECT_ID.ens.labels\`" 2>/dev/null | tail -1)
+    
+    # If the query failed (table doesn't exist), LABELS_COUNT will contain an error message
+    if [[ "$LABELS_COUNT" =~ "not found" ]] || [[ -z "$LABELS_COUNT" ]] || [[ "$LABELS_COUNT" == "0" ]]; then
+        LABELS_COUNT="0"
+    fi
     
     if [[ "$LABELS_COUNT" == "0" ]] || [[ -z "$LABELS_COUNT" ]]; then
         echo ""
@@ -219,11 +228,11 @@ echo "Total files processed: ${#PIPELINE_FILES[@]}"
 echo "End time: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 echo "📊 Check your tables:"
-echo "   bq ls $PROJECT_ID:ens_temp2"
+echo "   bq ls $PROJECT_ID:ens"
 echo ""
 echo "🔍 Key production tables:"
-echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.registry\\\`\""
-echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.resolvers\\\`\""
-echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.reverse_records\\\`\""
-echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.registration_periods\\\`\""
-echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens_temp2.resolutions\\\`\""
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens.registry\\\`\""
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens.resolvers\\\`\""
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens.reverse_records\\\`\""
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens.registration_periods\\\`\""
+echo "   bq query \"SELECT COUNT(*) FROM \\\`$PROJECT_ID.ens.resolutions\\\`\""

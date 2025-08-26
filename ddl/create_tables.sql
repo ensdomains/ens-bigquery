@@ -1,12 +1,12 @@
 -- This script creates tables for storing Ethereum Name Service (ENS) data in BigQuery.
 -- See table_documentation.md for detailed column descriptions.
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.labels` (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.labels` (
     labelHash BYTES,
     label STRING
 );
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registry` (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.registry` (
     node BYTES,
     labelHash BYTES,
     parentNode BYTES,
@@ -15,7 +15,7 @@ CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registry` (
     name STRING
 );
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolvers` (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.resolvers` (
     address STRING,
     node STRING,
     addr STRING,
@@ -29,7 +29,7 @@ CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolvers` (
     reverseName STRING
 );
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolutions` (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.resolutions` (
     node BYTES,
     name STRING,
     addr STRING,
@@ -37,12 +37,12 @@ CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.resolutions` (
     addresses STRING
 );
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.reverse_records` (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.reverse_records` (
     name STRING,
     address STRING
 );
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.registration_periods` (
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.registration_periods` (
     labelhash STRING,
     label STRING,
     event_timestamp TIMESTAMP,

@@ -1,4 +1,4 @@
-  CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.decodeContentHash`(contentHash STRING)
+  CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.decodeContentHash`(contentHash STRING)
   RETURNS STRING
   LANGUAGE js
   OPTIONS (
@@ -11,7 +11,7 @@
 
 
   -- Create a function to encode content hashes
-  CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.encodeContentHash`(codec STRING, value STRING)
+  CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.encodeContentHash`(codec STRING, value STRING)
   RETURNS STRING
   LANGUAGE js
   OPTIONS (
@@ -22,7 +22,7 @@
   """;
 
   -- Create a function to get the codec type
-  CREATE OR REPLACE FUNCTION `web3-publicgoods.ens_temp2.getContentHashCodec`(contentHash STRING)
+  CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.getContentHashCodec`(contentHash STRING)
   RETURNS STRING
   LANGUAGE js
   OPTIONS (

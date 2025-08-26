@@ -5,14 +5,14 @@
 -- Note: NAMEHASH function is defined in create_functions.sql
 
 -- Create reverse records using the proper ENS logic
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.reverse_records` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.reverse_records` AS
 WITH
 -- Get all ETH addresses that have been resolved (forward resolution)
 resolved_addrs AS (
   SELECT DISTINCT
     node,
     addr
-  FROM `web3-publicgoods.ens_temp2.state_resolver_eth_addresses`
+  FROM `web3-publicgoods.ens.state_resolver_eth_addresses`
   WHERE addr IS NOT NULL
     AND addr != '0x0000000000000000000000000000000000000000'
     AND LENGTH(addr) = 42
@@ -22,7 +22,7 @@ resolvers AS (
   SELECT DISTINCT
     node,
     address AS resolver
-  FROM `web3-publicgoods.ens_temp2.resolvers`
+  FROM `web3-publicgoods.ens.resolvers`
   WHERE reverseName IS NOT NULL
     AND reverseName != ''
 ),
@@ -32,7 +32,7 @@ names AS (
     node,
     address AS resolver,
     reverseName AS name
-  FROM `web3-publicgoods.ens_temp2.state_resolver_reverse_names`
+  FROM `web3-publicgoods.ens.state_resolver_reverse_names`
   WHERE reverseName IS NOT NULL 
     AND reverseName != ''
 )
@@ -46,22 +46,22 @@ SELECT DISTINCT
 FROM resolved_addrs
 -- Join resolvers where the reverse node matches addr.reverse pattern
 INNER JOIN resolvers 
-  ON resolvers.node = `web3-publicgoods.ens_temp2.NAMEHASH`(CONCAT(SUBSTR(resolved_addrs.addr, 3), ".addr.reverse"))
+  ON resolvers.node = `web3-publicgoods.ens.NAMEHASH`(CONCAT(SUBSTR(resolved_addrs.addr, 3), ".addr.reverse"))
 -- Join names to get the actual ENS name
 INNER JOIN names 
   ON names.resolver = resolvers.resolver 
   AND names.node = resolvers.node
 -- Validate that forward resolution matches (prevents invalid reverse records)
-WHERE resolved_addrs.node = `web3-publicgoods.ens_temp2.NAMEHASH`(names.name);
+WHERE resolved_addrs.node = `web3-publicgoods.ens.NAMEHASH`(names.name);
 
 -- Create an unvalidated version without the validation step for debugging
-CREATE OR REPLACE TABLE `web3-publicgoods.ens_temp2.debug_reverse_records_unvalidated` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens.debug_reverse_records_unvalidated` AS
 WITH reverse_resolver_data AS (
   SELECT DISTINCT
     node,
     address AS resolver_address,
     reverseName AS name
-  FROM `web3-publicgoods.ens_temp2.state_resolver_reverse_names`
+  FROM `web3-publicgoods.ens.state_resolver_reverse_names`
   WHERE reverseName IS NOT NULL 
     AND reverseName != ''
 )
