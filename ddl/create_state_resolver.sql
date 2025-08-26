@@ -58,9 +58,10 @@ SELECT
 FROM latest_content
 WHERE rn = 1;
 
--- Latest reverse name (from NameChanged events)
+-- Latest reverse name (from NameChanged events + historical traces)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_reverse_names` AS
-WITH latest_names AS (
+WITH all_reverse_names AS (
+  -- From NameChanged events (main source)
   SELECT 
     address,
     node,
@@ -68,12 +69,39 @@ WITH latest_names AS (
     block_timestamp,
     block_number,
     transaction_hash,
-    ROW_NUMBER() OVER (
-      PARTITION BY address, node 
-      ORDER BY block_timestamp DESC, log_index DESC
-    ) AS rn
+    log_index
   FROM `web3-publicgoods.ens.decoded_resolver_NameChanged`
   WHERE domain_name IS NOT NULL
+  
+  UNION ALL
+  
+  -- From historical traces (supplement for old resolvers that didn't emit events)
+  -- Only include if the historical traces table exists
+  SELECT 
+    resolver_address AS address,
+    node,
+    domain_name AS reverseName,
+    block_timestamp,
+    block_number,
+    transaction_hash,
+    NULL AS log_index  -- Traces don't have log_index
+  FROM `web3-publicgoods.ens.historical_reverse_traces`
+  WHERE domain_name IS NOT NULL
+),
+latest_names AS (
+  SELECT 
+    address,
+    node,
+    reverseName,
+    block_timestamp,
+    block_number,
+    transaction_hash,
+    ROW_NUMBER() OVER (
+      PARTITION BY address, node 
+      ORDER BY block_timestamp DESC, log_index DESC NULLS LAST
+    ) AS rn
+  FROM all_reverse_names
+  WHERE reverseName IS NOT NULL
 )
 SELECT 
   address,

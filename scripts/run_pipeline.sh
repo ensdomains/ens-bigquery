@@ -78,8 +78,9 @@ PIPELINE_FILES=(
     "create_controller_event_tables.sql"      # Decode NameRegistered/NameRenewed events
     "create_base_registrar_events.sql"        # Decode NameMigrated events
     "create_resolver_event_tables.sql"        # Decode all resolver events
+    "create_historical_reverse_traces.sql"    # Load historical traces from old resolvers
     "create_registry_event_tables.sql"        # Decode registry events (NewOwner, Transfer, etc.)
-    "create_state_resolver.sql"               # Compute latest state per node
+    "create_state_resolver.sql"               # Compute latest state per node (includes historical)
     "create_state_registry.sql"               # Compute latest registry state per node
     "create_aggregated_resolver.sql"          # Aggregate text records, addresses
     "create_resolver_table.sql"               # Combine into main resolver table
