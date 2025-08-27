@@ -17,7 +17,7 @@ You can only run bq command for query purpose. For creating/inserting data, plea
   - `transactions`: All Ethereum transactions
 - **ENS Labels**: `preimagedb.preimages.keccak256` (134M+ label mappings)
 - **Legacy Schema**: `ens-manager.names` and `ens-manager.registrations`
-- **Target Schema**: `web3-publicgoods.ens_temp.*` following ddl/table_documentation.md
+- **Target Schema**: `web3-publicgoods.ens.*` following ddl/table_documentation.md
 
 ## Target Schema Pipeline Architecture
 
@@ -52,24 +52,37 @@ When creating event tables, the following column names were mapped to avoid BigQ
 ```
 🌐 SOURCE LAYER: bigquery-public-data.crypto_ethereum.*
 ├── logs (Raw event logs)
-├── traces (Transaction execution traces)  
+├── traces (Transaction execution traces)
 └── transactions (Transaction metadata)
     │
     ├── 📊 EXTRACTION LAYER: Contract-filtered raw data
     │   ├── raw_resolver_events
     │   ├── raw_registry_events  
     │   ├── raw_registrar_events
-    │   └── raw_controller_events
+    │   ├── raw_controller_events
+    │   ├── raw_base_registrar_events
+    │   ├── raw_name_wrapper_events
+    │   ├── labels (134M+ keccak256 preimages from preimagedb)
+    │   └── historical_reverse_traces
     │
     ├── 🔧 DECODING LAYER: ABI-decoded events
     │   ├── RESOLVER EVENTS:
-    │   │   ├── decoded_resolver_event_AddrChanged
-    │   │   ├── decoded_resolver_event_AddressChanged  
-    │   │   ├── decoded_resolver_event_TextChanged_v3
-    │   │   ├── decoded_resolver_event_TextChanged_v4
-    │   │   ├── decoded_resolver_event_ContenthashChanged
-    │   │   ├── decoded_resolver_event_NameChanged
-    │   │   └── decoded_resolver_event_* (9 event types total)
+    │   │   ├── decoded_resolver_AddrChanged
+    │   │   ├── decoded_resolver_AddressChanged  
+    │   │   ├── decoded_resolver_TextChanged_v3
+    │   │   ├── decoded_resolver_TextChanged_v4
+    │   │   ├── decoded_resolver_ContenthashChanged
+    │   │   ├── decoded_resolver_NameChanged
+    │   │   └── decoded_resolver_* (11 event types total)
+    │   │
+    │   ├── CONTROLLER EVENTS:
+    │   │   ├── decoded_controller_NameRegistered
+    │   │   └── decoded_controller_NameRenewed
+    │   │
+    │   ├── BASE REGISTRAR EVENTS:
+    │   │   ├── decoded_base_registrar_NameRegistered
+    │   │   ├── decoded_base_registrar_NameRenewed
+    │   │   └── decoded_base_registrar_NameMigrated
     │   │
     │   └── REGISTRY EVENTS:
     │       ├── decoded_registry_NewOwner
@@ -80,10 +93,11 @@ When creating event tables, the following column names were mapped to avoid BigQ
     │   ├── RESOLVER STATE:
     │   │   ├── state_resolver_eth_addresses
     │   │   ├── state_resolver_contenthashes
-    │   │   ├── state_resolver_reverse_names
+    │   │   ├── state_resolver_reverse_names (combines events + traces)
     │   │   ├── state_resolver_pubkeys
     │   │   ├── state_resolver_abi
-    │   │   └── state_resolver_interfaces
+    │   │   ├── state_resolver_interfaces
+    │   │   └── state_resolver_authorizations
     │   │
     │   └── REGISTRY STATE:
     │       ├── state_registry_owners (latest owner per node)
@@ -94,6 +108,7 @@ When creating event tables, the following column names were mapped to avoid BigQ
     │   ├── RESOLVER AGGREGATION:
     │   │   ├── agg_resolver_text_records (array of key-value structs)
     │   │   ├── agg_resolver_addresses (multi-chain addresses)
+    │   │   ├── agg_resolver_texts (deduplicated text records)
     │   │   └── agg_resolver_activity (event statistics)
     │   │
     │   └── REGISTRY AGGREGATION:
@@ -104,20 +119,48 @@ When creating event tables, the following column names were mapped to avoid BigQ
         ├── resolvers (main table with text_records array)
         ├── resolvers_clustered (performance-optimized)
         ├── registry (4.06M nodes with hierarchical names)
-        ├── reverse_records (validated reverse lookups)
-        └── reverse_records_unvalidated (debugging/unvalidated)
+        ├── registration_periods (with accurate USD pricing via Uniswap)
+        ├── reverse_records (validated reverse lookups, ~500k records)
+        ├── reverse_records_unvalidated (debugging/unvalidated)
+        └── resolutions (joined registry + resolvers)
 ```
 
-## Production Pipeline (6 DDL files in order)
-1. `create_ens_raw_events.sql` - Extract raw events from Ethereum logs → `raw_*` tables
-2. `create_resolver_event_tables.sql` - Decode resolver events with ABI parsing → `decoded_*` tables
-3. `create_state_resolver.sql` - Compute latest state per resolver+node → `state_*` tables
-4. `create_aggregated_resolver.sql` - Aggregate text records and addresses → `agg_*` tables
-5. `create_resolver_table.sql` - Combine into final resolver table → `resolvers` (production)
-6. `create_reverse_records_table.sql` - Generate reverse records → `reverse_records` (production)
+## Production Pipeline (16 DDL files in order)
+1. `create_functions.sql` - All UDF functions (NAMEHASH, DECODE_SET_NAME, etc.) → Functions
+2. `create_ens_raw_events.sql` - Extract raw events from Ethereum logs → `raw_*` tables
+3. `create_controller_event_tables.sql` - Decode NameRegistered/NameRenewed events → `decoded_controller_*`
+4. `create_base_registrar_events.sql` - Decode NameMigrated events → `decoded_base_registrar_*`
+5. `create_resolver_event_tables.sql` - Decode all resolver events → `decoded_resolver_*`
+6. `create_historical_reverse_traces.sql` - Extract setName calls from old resolvers → `historical_reverse_traces`
+7. `create_registry_event_tables.sql` - Decode registry events (NewOwner, Transfer, etc.) → `decoded_registry_*`
+8. `create_state_resolver.sql` - Compute latest state (events + traces) → `state_resolver_*`
+9. `create_state_registry.sql` - Compute latest registry state → `state_registry_*`
+10. `create_aggregated_resolver.sql` - Aggregate text records and addresses → `agg_resolver_*`
+11. `create_resolver_table.sql` - Combine into main resolver table → `resolvers`
+12. `create_aggregated_registry.sql` - Aggregate registry data → `agg_registry_*`
+13. `create_registry_table.sql` - Create registry table → `registry`
+14. `create_registration_periods_table.sql` - Registration periods with USD costs → `registration_periods`
+15. `create_reverse_records_table.sql` - Generate reverse records → `reverse_records`
+16. `create_resolutions_table.sql` - Join registry + resolvers → `resolutions`
 
 **Run command:** `./scripts/run_pipeline.sh`
 **Target dataset:** `web3-publicgoods.ens.*`
+
+## Historical Traces Integration
+
+Some of the earlier version of reverse record didn't emit events. To supplement the data, we extract historical `setName()` function calls from transaction traces. Old resolver contracts (pre-2019) didn't always emit `NameChanged` events properly.
+
+### Key Components:
+- **DECODE_SET_NAME function**: Decodes `setName(bytes32,string)` calls from transaction input data
+- **historical_reverse_traces table**: Stores extracted setName calls from old resolvers (0x5fbb..., 0xa2c1...)
+- **state_resolver_reverse_names**: Combines NameChanged events + historical traces using UNION ALL
+- **Forward resolution validation**: Ensures names resolve back to correct addresses
+
+### Old Resolver Addresses with Event Issues:
+- `0x5fbb459c49bb06083c33109fa4f14810ec2cf358` - Old resolver with event emission issues
+- `0xa2c122be93b0074270ebee7f6b7292c7deb45047` - Another problematic old resolver
+
+This integration runs as part of the main pipeline (stage 6) and supplements event data with direct function call traces.
 
 ========================
 BIGQUERY CODE SNIPPETS
