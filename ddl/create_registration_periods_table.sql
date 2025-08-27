@@ -28,18 +28,8 @@ SELECT
     ) AS label,
     block_timestamp AS event_timestamp,
     log_index,
-    -- Key ens-manager logic: Use LAG to get previous expiry as start time
-    GREATEST(
-      block_timestamp, 
-      LAG(
-        TIMESTAMP_SECONDS(CAST(expires AS INT64)), 
-        1, 
-        TIMESTAMP("1970-01-01 00:00:00+00")
-      ) OVER (
-        PARTITION BY labelhash 
-        ORDER BY block_timestamp, log_index
-      )
-    ) AS start_time,
+    -- Correct logic: start_time is when the registration/renewal actually happened
+    block_timestamp AS start_time,
     TIMESTAMP_SECONDS(CAST(expires AS INT64)) AS end_time,
     cost,
     base_cost,
@@ -61,10 +51,7 @@ SELECT
       premium,
       'registered' AS event,
       address
-    FROM `web3-publicgoods.ens.decoded_controller_NameRegistered`
-    WHERE expires IS NOT NULL AND cost IS NOT NULL 
-      AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps (before year 2033)
-    
+    FROM `web3-publicgoods.ens.decoded_controller_NameRegistered`    
     UNION ALL
     
     -- Renewal events from our decoded controller tables
@@ -81,10 +68,7 @@ SELECT
       NULL AS premium,     -- Renewals don't have separate premium
       'renewed' AS event,
       address
-    FROM `web3-publicgoods.ens.decoded_controller_NameRenewed`
-    WHERE expires IS NOT NULL AND cost IS NOT NULL 
-      AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps (before year 2033)
-    
+    FROM `web3-publicgoods.ens.decoded_controller_NameRenewed`    
     UNION ALL
     
     -- Migration events from our decoded base registrar tables
@@ -104,12 +88,8 @@ SELECT
     FROM `web3-publicgoods.ens.decoded_base_registrar_NameMigrated` m
     LEFT JOIN `web3-publicgoods.ens.labels` l
       ON l.labelHash = FROM_HEX(SUBSTR(m.labelhash, 3))  -- Remove 0x prefix for comparison
-    WHERE expires IS NOT NULL 
-      AND expires > 0 AND expires < 2000000000  -- Filter reasonable Unix timestamps
     ) AS events
     WHERE labelhash IS NOT NULL
-    -- Add the ens-manager QUALIFY filter to ensure positive time periods
-    QUALIFY TIMESTAMP_DIFF(TIMESTAMP_SECONDS(CAST(expires AS INT64)), start_time, SECOND) > 0
   )
   WHERE labelhash IS NOT NULL
 ),
@@ -243,8 +223,4 @@ SELECT
   END) * ether_price as premium_usd
 
 FROM enriched_periods
-WHERE (cost > 0 OR event = 'migrated')  -- Include migrations even though they have cost = 0
-  AND end_time > start_time
-  AND label IS NOT NULL
-  AND TIMESTAMP_DIFF(end_time, start_time, DAY) / 365.25 BETWEEN 0.1 AND 20  -- Filter reasonable durations
 ORDER BY event_timestamp;
