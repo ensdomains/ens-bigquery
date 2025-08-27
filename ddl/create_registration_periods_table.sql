@@ -150,10 +150,6 @@ FROM (
   WHERE contract_address = '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc'  -- USDC-ETH pair
 )
 ),
-events_with_prices_filtered AS (
--- Filter to only ENS events after applying price window function
-SELECT * FROM events_with_prices WHERE labelhash IS NOT NULL
-),
 enriched_periods AS (
 -- Add calculated fields for premium derivation using external ETH-USD prices
 SELECT 
@@ -187,7 +183,8 @@ SELECT
     END) * (TIMESTAMP_DIFF(end_time, start_time, DAY) / 365.25)) / ether_price  -- theoretical_base_cost_usd / external_eth_usd_price
   END as theoretical_base_cost_eth
   
-FROM events_with_prices_filtered
+FROM events_with_prices 
+WHERE labelhash IS NOT NULL  -- Filter to only ENS events after price window function
 )
 -- Final SELECT with all calculations
 SELECT 
