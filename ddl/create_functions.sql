@@ -113,37 +113,48 @@ LANGUAGE js AS """
 CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.EXTRACT_NAME_FROM_ABI_DATA`(data STRING)
 RETURNS STRING
 LANGUAGE js AS """
-  if (!data || data.length < 322) return 'unknown';
-  
-  // Remove 0x prefix if present
-  const cleanData = data.startsWith('0x') ? data.slice(2) : data;
-  
-  // Check if this follows the expected ABI encoding pattern
-  // First 32 bytes should be 0x60 (pointer to string data)
-  const stringPointer = cleanData.substr(0, 64);
-  if (stringPointer !== '0000000000000000000000000000000000000000000000000000000000000060') {
-    return 'unknown';
-  }
-  
-  // Extract string length from bytes 96-127 (hex positions 192-255)
-  const lengthHex = cleanData.substr(192, 64);
-  const nameLength = parseInt(lengthHex, 16);
-  
-  if (nameLength > 100 || nameLength === 0) return 'unknown'; // Sanity check
-  
-  // Extract name data starting at position 256 
-  const nameHex = cleanData.substr(256, nameLength * 2);
-  
-  // Convert hex to ASCII string
-  let name = '';
-  for (let i = 0; i < nameHex.length; i += 2) {
-    const charCode = parseInt(nameHex.substr(i, 2), 16);
-    if (charCode >= 32 && charCode <= 126) { // Printable ASCII
-      name += String.fromCharCode(charCode);
+  try {
+    if (!data || data.length < 200) return null;
+    
+    // Remove 0x prefix if present
+    const cleanData = data.startsWith('0x') ? data.slice(2) : data;
+    
+    // Read the string pointer from first 32 bytes
+    const stringPointer = parseInt(cleanData.substr(0, 64), 16);
+    
+    // Valid pointers for different controller versions:
+    // Controller v1-v3: 0x60 (96 bytes) - name after cost and expires  
+    // Controller v4: 0x80 (128 bytes) - name after baseCost, premium, and expires
+    if (stringPointer !== 96 && stringPointer !== 128) {
+      return null;
     }
+    
+    // Calculate where the string length starts (pointer * 2 for hex chars)
+    const lengthPosition = stringPointer * 2;
+    const lengthHex = cleanData.substr(lengthPosition, 64);
+    const nameLength = parseInt(lengthHex, 16);
+    
+    if (nameLength > 100 || nameLength === 0) return null;
+    
+    // Extract name data (starts 32 bytes after length)
+    const namePosition = lengthPosition + 64;
+    const nameHex = cleanData.substr(namePosition, nameLength * 2);
+    
+    if (nameHex.length < nameLength * 2) return null;
+    
+    // Convert hex to ASCII string
+    let name = '';
+    for (let i = 0; i < nameHex.length; i += 2) {
+      const charCode = parseInt(nameHex.substr(i, 2), 16);
+      if (charCode >= 32 && charCode <= 126) { // Printable ASCII
+        name += String.fromCharCode(charCode);
+      }
+    }
+    
+    return name || null;
+  } catch(e) {
+    return null;
   }
-  
-  return name || 'unknown';
 """;
 
 -- ========================================
