@@ -11,7 +11,7 @@ SELECT
     address,
     topics,
     data
-FROM `bigquery-public-data.crypto_ethereum.logs`
+FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address = '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'  -- BaseRegistrar (correct address from YAML)
   AND topics[SAFE_OFFSET(0)] IN (
     '0xea3d7e1195a15d2ddcd859b01abd4c6b960fa9f9264e499a70a90c7f0c64b717',  -- NameMigrated

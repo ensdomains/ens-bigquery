@@ -13,7 +13,7 @@ SELECT
     block_timestamp,
     block_number,
     block_hash
-FROM `bigquery-public-data.crypto_ethereum.logs`
+FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address IN (
     -- Current ENS Registry
     '0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e',
@@ -35,7 +35,7 @@ SELECT
     block_timestamp,
     block_number,
     block_hash
-FROM `bigquery-public-data.crypto_ethereum.logs`
+FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address IN (
     -- PublicResolver contract addresses (all versions)
     '0xf29100983e058b709f3d539b0c765937b804ac15',
@@ -64,7 +64,7 @@ SELECT
     block_timestamp,
     block_number,
     block_hash
-FROM `bigquery-public-data.crypto_ethereum.logs`
+FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address IN (
     -- ENS BaseRegistrar contract
     '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'
@@ -84,7 +84,7 @@ SELECT
     block_timestamp,
     block_number,
     block_hash
-FROM `bigquery-public-data.crypto_ethereum.logs`
+FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address IN (
     -- EthRegistrarController contracts (all versions)
     '0xf0ad5cad05e10572efceb849f6ff0c68f9700455',  -- Controller v1
@@ -107,7 +107,7 @@ SELECT
     block_timestamp,
     block_number,
     block_hash
-FROM `bigquery-public-data.crypto_ethereum.logs`
+FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address IN (
     -- ENS NameWrapper contract
     '0xd4416b13d2b3a9abae7acd5797e58e1aaf138218'

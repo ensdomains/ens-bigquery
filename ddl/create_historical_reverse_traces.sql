@@ -59,7 +59,7 @@ FROM (
     transaction_hash,
     to_address,
     `web3-publicgoods.ens.DECODE_SET_NAME`(input) AS decoded
-  FROM `bigquery-public-data.crypto_ethereum.traces`
+  FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.traces`
   WHERE to_address IN (
     '0x5fbb459c49bb06083c33109fa4f14810ec2cf358',  -- Old resolver with event issues
     '0xa2c122be93b0074270ebee7f6b7292c7deb45047'   -- Another old resolver

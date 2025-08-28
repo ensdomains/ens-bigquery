@@ -11,7 +11,7 @@ You can only run bq command for query purpose. For creating/inserting data, plea
 - [Ethereum analytics with BigQuery](https://mirror.xyz/nick.eth/INhEmxgxoyoa8kPZ3rjYNZXoyfGsReLgx42MdDvn4SM)
 - [Custom Event Tables with BigQuery](https://mirror.xyz/nick.eth/KVal7tob7sqZSss27rrFlIpu6i91TJYJJvBzf53kwhQ)
 ## Data Sources
-- **Primary Source**: `bigquery-public-data.crypto_ethereum.*` (Google's public Ethereum dataset)
+- **Primary Source**: `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.*` (Google's public Ethereum dataset)
   - `logs`: All Ethereum event logs from every contract
   - `traces`: All Ethereum transaction traces
   - `transactions`: All Ethereum transactions
@@ -50,7 +50,7 @@ When creating event tables, the following column names were mapped to avoid BigQ
 ## Table hierarchy
 
 ```
-🌐 SOURCE LAYER: bigquery-public-data.crypto_ethereum.*
+🌐 SOURCE LAYER: bigquery-public-data.goog_blockchain_ethereum_mainnet_us.*
 ├── logs (Raw event logs)
 ├── traces (Transaction execution traces)
 └── transactions (Transaction metadata)

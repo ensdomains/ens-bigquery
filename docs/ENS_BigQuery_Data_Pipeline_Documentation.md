@@ -6,22 +6,22 @@ This document describes the ENS (Ethereum Name Service) BigQuery data pipeline, 
 
 ## True Data Sources
 
-### Primary Source: `bigquery-public-data.crypto_ethereum`
+### Primary Source: `bigquery-public-data.goog_blockchain_ethereum_mainnet_us`
 
 All ENS data ultimately derives from Google's public Ethereum BigQuery dataset:
 
-1. **`bigquery-public-data.crypto_ethereum.logs`** 🌐 *Ultimate Source*
+1. **`bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`** 🌐 *Ultimate Source*
    - **Content**: All Ethereum event logs from every contract
    - **ENS Filtering**: Filtered by ENS contract addresses:
      - `0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85` (ENS Base Registrar - 13.5M events)
      - `0x253553366da8546fc250f225fe3d25d0c782303b` (ENS Controller - 1.2M events)  
      - `0x314159265dd8dbb310642f98f50c066173c1259b` (ENS Registry - 1.1M events)
 
-2. **`bigquery-public-data.crypto_ethereum.traces`** 🌐 *Ultimate Source*
+2. **`bigquery-public-data.goog_blockchain_ethereum_mainnet_us.traces`** 🌐 *Ultimate Source*
    - **Content**: All Ethereum transaction traces
    - **ENS Filtering**: Filtered by ENS contract addresses for detailed execution data
 
-3. **`bigquery-public-data.crypto_ethereum.transactions`** 🌐 *Ultimate Source*
+3. **`bigquery-public-data.goog_blockchain_ethereum_mainnet_us.transactions`** 🌐 *Ultimate Source*
    - **Content**: All Ethereum transactions
    - **Usage**: Transaction metadata and gas price information
 
@@ -46,14 +46,14 @@ All ENS data ultimately derives from Google's public Ethereum BigQuery dataset:
 #### Extracted Tables (From Public Sources)
 
 1. **`controller_events`** 📊 *Extracted Table*
-   - **True Source**: `bigquery-public-data.crypto_ethereum.logs`
+   - **True Source**: `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
    - **Extraction Logic**: `WHERE address IN ('0x253553366da8546fc250f225fe3d25d0c782303b', ...)`
    - **Content**: Raw Ethereum event logs from ENS controller contracts
    - **Key Fields**: transaction_hash, block_number, block_timestamp, address, data, topics
    - **Purpose**: Filtered raw events for ENS controllers
 
 2. **`controller_traces`** 📊 *Extracted Table*
-   - **True Source**: `bigquery-public-data.crypto_ethereum.traces`
+   - **True Source**: `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.traces`
    - **Extraction Logic**: `WHERE to_address IN ('0x253553366da8546fc250f225fe3d25d0c782303b', ...)`
    - **Content**: Ethereum transaction traces for ENS controller calls
    - **Purpose**: Detailed execution traces for controller interactions
@@ -90,7 +90,7 @@ All ENS data ultimately derives from Google's public Ethereum BigQuery dataset:
 
 7. **`names`** 🔄 *Derived Table*
    - **Sources**: 
-     - `bigquery-public-data.crypto_ethereum.logs` (registry events)
+     - `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs` (registry events)
      - `controller_events` and decoded event tables
    - **Derivation Logic**: 
      ```sql
@@ -138,7 +138,7 @@ All ENS data ultimately derives from Google's public Ethereum BigQuery dataset:
 #### Extracted Tables
 
 1. **`contract_interactions`** 📊 *Extracted Table*
-   - **True Source**: `bigquery-public-data.crypto_ethereum.transactions`
+   - **True Source**: `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.transactions`
    - **Extraction Logic**: `WHERE to_address IN (ENS_CONTRACT_ADDRESSES)`
    - **Content**: All transaction interactions with ENS contracts
    - **Purpose**: Source data for registration cost and gas analysis
@@ -149,7 +149,7 @@ All ENS data ultimately derives from Google's public Ethereum BigQuery dataset:
    - **Sources**: 
      - `ETHRegistrarController4_event_NameRegistered`
      - `ETHRegistrarController4_event_NameRenewed`
-     - `bigquery-public-data.crypto_ethereum.transactions` (for ETH prices)
+     - `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.transactions` (for ETH prices)
    - **Derivation Logic**:
      ```sql
      -- Simplified example
@@ -187,15 +187,15 @@ All ENS data ultimately derives from Google's public Ethereum BigQuery dataset:
 
 ### 1. Data Extraction from Public Sources
 ```
-bigquery-public-data.crypto_ethereum.logs 
+bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs 
 ├── WHERE address = '0x253553366da8546fc250f225fe3d25d0c782303b' → controller_events
 ├── WHERE address = '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85' → registrar_events  
 └── WHERE address = '0x314159265dd8dbb310642f98f50c066173c1259b' → registry_events
 
-bigquery-public-data.crypto_ethereum.traces
+bigquery-public-data.goog_blockchain_ethereum_mainnet_us.traces
 └── WHERE to_address IN (ENS_ADDRESSES) → controller_traces
 
-bigquery-public-data.crypto_ethereum.transactions  
+bigquery-public-data.goog_blockchain_ethereum_mainnet_us.transactions  
 └── WHERE to_address IN (ENS_ADDRESSES) → contract_interactions
 
 preimagedb.preimages.keccak256 → labels (label hash mappings)
@@ -285,9 +285,9 @@ CREATE TABLE ens_temp.labels (labelHash, label) -- ✅ Already created
 
 ```
 🌐 ULTIMATE SOURCES (Google Public Data + External)
-├── bigquery-public-data.crypto_ethereum.logs (16M+ ENS events)
-├── bigquery-public-data.crypto_ethereum.traces  
-├── bigquery-public-data.crypto_ethereum.transactions
+├── bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs (16M+ ENS events)
+├── bigquery-public-data.goog_blockchain_ethereum_mainnet_us.traces  
+├── bigquery-public-data.goog_blockchain_ethereum_mainnet_us.transactions
 └── preimagedb.preimages.keccak256 (134M+ label mappings)
     │
     ├── 📊 EXTRACTION LAYER (Contract Address Filtering)
