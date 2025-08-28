@@ -75,7 +75,7 @@ SELECT
     SELECT
       transaction_hash,
       m.labelhash AS labelhash,
-      COALESCE(l.label, 'unknown') AS label,
+      l.label AS label,
       NULL AS owner,  -- Not needed for migration processing
       block_timestamp,
       log_index,
@@ -196,6 +196,7 @@ SELECT
   end_time,
   cost,
   event,
+  transaction_hash,  -- Added for cross-checking with decoded tables
   duration_years,
   base_cost_usd_per_year,
   theoretical_base_cost_usd as base_cost_usd,
