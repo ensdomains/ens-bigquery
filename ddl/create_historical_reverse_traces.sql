@@ -43,7 +43,7 @@ LANGUAGE js AS """
 
 -- Extract historical traces from old resolvers
 -- These addresses had known issues with event emission
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.historical_reverse_traces` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._historical_reverse_traces` AS
 SELECT
   block_number,
   block_timestamp,

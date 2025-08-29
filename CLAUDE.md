@@ -62,7 +62,6 @@ When creating event tables, the following column names were mapped to avoid BigQ
     │   ├── raw_controller_events
     │   ├── raw_base_registrar_events
     │   ├── raw_name_wrapper_events
-    │   ├── labels (134M+ keccak256 preimages from preimagedb)
     │   └── historical_reverse_traces
     │
     ├── 🔧 DECODING LAYER: ABI-decoded events
@@ -116,6 +115,7 @@ When creating event tables, the following column names were mapped to avoid BigQ
     │       └── agg_registry_activity (ownership and resolver statistics)
     │
     └── 🎯 TARGET LAYER: Final production tables
+        ├── labels (134M+ keccak256 preimages from preimagedb)
         ├── resolvers (main table with text_records array)
         ├── resolvers_clustered (performance-optimized)
         ├── registry (4.06M nodes with hierarchical names)

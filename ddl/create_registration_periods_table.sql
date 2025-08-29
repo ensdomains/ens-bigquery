@@ -51,7 +51,7 @@ SELECT
       premium,
       'registered' AS event,
       address
-    FROM `web3-publicgoods.ens.decoded_controller_NameRegistered`    
+    FROM `web3-publicgoods.ens._decoded_controller_NameRegistered`    
     UNION ALL
     
     -- Renewal events from our decoded controller tables
@@ -68,7 +68,7 @@ SELECT
       NULL AS premium,     -- Renewals don't have separate premium
       'renewed' AS event,
       address
-    FROM `web3-publicgoods.ens.decoded_controller_NameRenewed`    
+    FROM `web3-publicgoods.ens._decoded_controller_NameRenewed`    
     UNION ALL
     
     -- Migration events from our decoded base registrar tables
@@ -85,7 +85,7 @@ SELECT
       NULL AS premium,
       'migrated' AS event,
       '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85' as controller_address  -- BaseRegistrar address
-    FROM `web3-publicgoods.ens.decoded_base_registrar_NameMigrated` m
+    FROM `web3-publicgoods.ens._decoded_base_registrar_NameMigrated` m
     LEFT JOIN `web3-publicgoods.ens.labels` l
       ON l.labelHash = FROM_HEX(SUBSTR(m.labelhash, 3))  -- Remove 0x prefix for comparison
     ) AS events

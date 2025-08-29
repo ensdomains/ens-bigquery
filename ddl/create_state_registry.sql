@@ -6,7 +6,7 @@
 -- ======================
 
 -- Latest ownership state for each node
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_registry_owners` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_registry_owners` AS
 WITH all_ownership_changes AS (
   -- NewOwner events
   SELECT 
@@ -16,7 +16,7 @@ WITH all_ownership_changes AS (
     block_number,
     log_index,
     transaction_hash
-  FROM `web3-publicgoods.ens.decoded_registry_NewOwner`
+  FROM `web3-publicgoods.ens._decoded_registry_NewOwner`
   
   UNION ALL
   
@@ -28,7 +28,7 @@ WITH all_ownership_changes AS (
     block_number,
     log_index,
     transaction_hash
-  FROM `web3-publicgoods.ens.decoded_registry_Transfer`
+  FROM `web3-publicgoods.ens._decoded_registry_Transfer`
 ),
 latest_owners AS (
   SELECT 
@@ -53,7 +53,7 @@ FROM latest_owners
 WHERE rn = 1;
 
 -- Latest resolver state for each node
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_registry_resolvers` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_registry_resolvers` AS
 WITH latest_resolvers AS (
   SELECT 
     node,
@@ -65,7 +65,7 @@ WITH latest_resolvers AS (
       PARTITION BY node 
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_registry_NewResolver`
+  FROM `web3-publicgoods.ens._decoded_registry_NewResolver`
 )
 SELECT 
   node,
@@ -77,7 +77,7 @@ FROM latest_resolvers
 WHERE rn = 1;
 
 -- Node hierarchy and labels (from NewOwner events)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_registry_labels` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_registry_labels` AS
 WITH latest_node_creation AS (
   SELECT 
     node,
@@ -90,7 +90,7 @@ WITH latest_node_creation AS (
       PARTITION BY node 
       ORDER BY block_timestamp ASC, log_index ASC  -- First occurrence
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_registry_NewOwner`
+  FROM `web3-publicgoods.ens._decoded_registry_NewOwner`
 )
 SELECT 
   node,

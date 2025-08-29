@@ -8,7 +8,7 @@
 -- Note: COMPUTE_ENS_NODE function is defined in create_functions.sql
 
 -- Node hierarchy and parent-child relationships
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.agg_registry_hierarchy` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._agg_registry_hierarchy` AS
 WITH deduplicated_events AS (
   -- Deduplicate NewOwner events (some transactions emit duplicate events)
   SELECT 
@@ -23,7 +23,7 @@ WITH deduplicated_events AS (
       PARTITION BY node, label, block_number, transaction_hash 
       ORDER BY log_index
     ) as rn
-  FROM `web3-publicgoods.ens.decoded_registry_NewOwner`
+  FROM `web3-publicgoods.ens._decoded_registry_NewOwner`
 ),
 parent_child_mapping AS (
   -- Build actual parent-child relationships from deduplicated NewOwner events
@@ -110,20 +110,20 @@ SELECT
 FROM names_with_parents;
 
 -- Registry activity and ownership history  
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.agg_registry_activity` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._agg_registry_activity` AS
 WITH all_events AS (
   SELECT node, owner, block_timestamp, 'NewOwner' AS event_type
-  FROM `web3-publicgoods.ens.decoded_registry_NewOwner`
+  FROM `web3-publicgoods.ens._decoded_registry_NewOwner`
   
   UNION ALL
   
   SELECT node, owner, block_timestamp, 'Transfer' AS event_type  
-  FROM `web3-publicgoods.ens.decoded_registry_Transfer`
+  FROM `web3-publicgoods.ens._decoded_registry_Transfer`
   
   UNION ALL
   
   SELECT node, resolver AS owner, block_timestamp, 'NewResolver' AS event_type
-  FROM `web3-publicgoods.ens.decoded_registry_NewResolver`
+  FROM `web3-publicgoods.ens._decoded_registry_NewResolver`
 ),
 node_activity AS (
   SELECT 

@@ -7,7 +7,7 @@
 -- ======================
 
 -- Latest ETH address (from AddrChanged events)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_eth_addresses` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_resolver_eth_addresses` AS
 WITH latest_addr AS (
   SELECT 
     address,
@@ -20,7 +20,7 @@ WITH latest_addr AS (
       PARTITION BY address, node 
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_resolver_AddrChanged`
+  FROM `web3-publicgoods.ens._decoded_resolver_AddrChanged`
 )
 SELECT 
   address,
@@ -33,7 +33,7 @@ FROM latest_addr
 WHERE rn = 1;
 
 -- Latest content hash (from ContenthashChanged events)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_contenthashes` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_resolver_contenthashes` AS
 WITH latest_content AS (
   SELECT 
     address,
@@ -46,7 +46,7 @@ WITH latest_content AS (
       PARTITION BY address, node 
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_resolver_ContenthashChanged`
+  FROM `web3-publicgoods.ens._decoded_resolver_ContenthashChanged`
 )
 SELECT 
   address,
@@ -59,7 +59,7 @@ FROM latest_content
 WHERE rn = 1;
 
 -- Latest reverse name (from NameChanged events + historical traces)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_reverse_names` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_resolver_reverse_names` AS
 WITH all_reverse_names AS (
   -- From NameChanged events (main source)
   SELECT 
@@ -70,7 +70,7 @@ WITH all_reverse_names AS (
     block_number,
     transaction_hash,
     log_index
-  FROM `web3-publicgoods.ens.decoded_resolver_NameChanged`
+  FROM `web3-publicgoods.ens._decoded_resolver_NameChanged`
   WHERE domain_name IS NOT NULL
   
   UNION ALL
@@ -85,7 +85,7 @@ WITH all_reverse_names AS (
     block_number,
     transaction_hash,
     NULL AS log_index  -- Traces don't have log_index
-  FROM `web3-publicgoods.ens.historical_reverse_traces`
+  FROM `web3-publicgoods.ens._historical_reverse_traces`
   WHERE domain_name IS NOT NULL
 ),
 latest_names AS (
@@ -114,7 +114,7 @@ FROM latest_names
 WHERE rn = 1;
 
 -- Latest pubkey (from PubkeyChanged events)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_pubkeys` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_resolver_pubkeys` AS
 WITH latest_pubkeys AS (
   SELECT 
     address,
@@ -128,7 +128,7 @@ WITH latest_pubkeys AS (
       PARTITION BY address, node 
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_resolver_PubkeyChanged`
+  FROM `web3-publicgoods.ens._decoded_resolver_PubkeyChanged`
 )
 SELECT 
   address,
@@ -142,7 +142,7 @@ FROM latest_pubkeys
 WHERE rn = 1;
 
 -- Latest ABI (from ABIChanged events)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_abi` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_resolver_abi` AS
 WITH latest_abi AS (
   SELECT 
     address,
@@ -155,7 +155,7 @@ WITH latest_abi AS (
       PARTITION BY address, node, contentType
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_resolver_ABIChanged`
+  FROM `web3-publicgoods.ens._decoded_resolver_ABIChanged`
 ),
 aggregated_abi AS (
   SELECT 
@@ -180,7 +180,7 @@ SELECT
 FROM aggregated_abi;
 
 -- Latest interface implementations (from InterfaceChanged events)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_interfaces` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_resolver_interfaces` AS
 WITH latest_interfaces AS (
   SELECT 
     address,
@@ -194,7 +194,7 @@ WITH latest_interfaces AS (
       PARTITION BY address, node, interfaceID
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_resolver_InterfaceChanged`
+  FROM `web3-publicgoods.ens._decoded_resolver_InterfaceChanged`
 ),
 aggregated_interfaces AS (
   SELECT 
@@ -220,7 +220,7 @@ SELECT
 FROM aggregated_interfaces;
 
 -- Latest authorizations (from AuthorisationChanged events)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.state_resolver_authorizations` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._state_resolver_authorizations` AS
 WITH latest_auth AS (
   SELECT 
     address,
@@ -235,7 +235,7 @@ WITH latest_auth AS (
       PARTITION BY address, node, owner, target
       ORDER BY block_timestamp DESC, log_index DESC
     ) AS rn
-  FROM `web3-publicgoods.ens.decoded_resolver_AuthorisationChanged`
+  FROM `web3-publicgoods.ens._decoded_resolver_AuthorisationChanged`
 ),
 active_authorizations AS (
   SELECT 

@@ -6,7 +6,7 @@
 
 
 -- Create decoded NameRegistered events table
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.decoded_controller_NameRegistered` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_controller_NameRegistered` AS
 SELECT 
     block_timestamp,
     block_number,
@@ -49,7 +49,7 @@ SELECT
         ELSE  -- Controller v1-v3
             SAFE_CAST(CONCAT('0x', SUBSTR(data, 131, 64)) AS INT64)       -- expires at offset 131
     END AS expires
-FROM `web3-publicgoods.ens.raw_controller_events`
+FROM `web3-publicgoods.ens._raw_controller_events`
 WHERE topics[SAFE_OFFSET(0)] IN (
     '0xb3d987963d01b2f68493b4bdb130988f157ea43070d4ad840fee0466ed9370d9', -- NameRegistered v1
     '0x69e37f151eb98a09618ddaa80c8cfaf1ce5996867c489f45b555b412271ebf27', -- NameRegistered v4 (new signature)
@@ -57,7 +57,7 @@ WHERE topics[SAFE_OFFSET(0)] IN (
 );
 
 -- Create decoded NameRenewed events table
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.decoded_controller_NameRenewed` AS  
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_controller_NameRenewed` AS  
 SELECT 
     block_timestamp,
     block_number,
@@ -77,5 +77,5 @@ SELECT
     -- The cost field represents the total renewal cost
     NULL AS base_cost,
     NULL AS premium
-FROM `web3-publicgoods.ens.raw_controller_events`  
+FROM `web3-publicgoods.ens._raw_controller_events`  
 WHERE topics[SAFE_OFFSET(0)] = '0x3da24c024582931cfaf8267d8ed24d13a82a8068d5bd337d30ec45cea4e506ae';

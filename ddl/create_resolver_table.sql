@@ -6,42 +6,42 @@ CREATE OR REPLACE TABLE `web3-publicgoods.ens.resolvers` AS
 WITH all_resolver_nodes AS (
   -- Get all unique resolver+node combinations from all sources
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.state_resolver_eth_addresses`
+  FROM `web3-publicgoods.ens._state_resolver_eth_addresses`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.state_resolver_contenthashes`
+  FROM `web3-publicgoods.ens._state_resolver_contenthashes`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.state_resolver_reverse_names`
+  FROM `web3-publicgoods.ens._state_resolver_reverse_names`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.agg_resolver_text_records`
+  FROM `web3-publicgoods.ens._agg_resolver_text_records`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.agg_resolver_addresses`
+  FROM `web3-publicgoods.ens._agg_resolver_addresses`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.state_resolver_pubkeys`
+  FROM `web3-publicgoods.ens._state_resolver_pubkeys`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.state_resolver_abi`
+  FROM `web3-publicgoods.ens._state_resolver_abi`
   
   UNION DISTINCT
   
   SELECT DISTINCT address, node 
-  FROM `web3-publicgoods.ens.state_resolver_interfaces`
+  FROM `web3-publicgoods.ens._state_resolver_interfaces`
 ),
 resolver_data_combined AS (
   SELECT 
@@ -77,20 +77,20 @@ resolver_data_combined AS (
   FROM all_resolver_nodes arn
   
   -- Join state tables (latest values)
-  LEFT JOIN `web3-publicgoods.ens.state_resolver_eth_addresses` eth
+  LEFT JOIN `web3-publicgoods.ens._state_resolver_eth_addresses` eth
     ON arn.address = eth.address AND arn.node = eth.node
     
-  LEFT JOIN `web3-publicgoods.ens.state_resolver_contenthashes` ch
+  LEFT JOIN `web3-publicgoods.ens._state_resolver_contenthashes` ch
     ON arn.address = ch.address AND arn.node = ch.node
     
-  LEFT JOIN `web3-publicgoods.ens.state_resolver_reverse_names` rn
+  LEFT JOIN `web3-publicgoods.ens._state_resolver_reverse_names` rn
     ON arn.address = rn.address AND arn.node = rn.node
   
   -- Join aggregated tables (collections)
-  LEFT JOIN `web3-publicgoods.ens.agg_resolver_text_records` txtr
+  LEFT JOIN `web3-publicgoods.ens._agg_resolver_text_records` txtr
     ON arn.address = txtr.address AND arn.node = txtr.node
     
-  LEFT JOIN `web3-publicgoods.ens.agg_resolver_addresses` addr
+  LEFT JOIN `web3-publicgoods.ens._agg_resolver_addresses` addr
     ON arn.address = addr.address AND arn.node = addr.node
 )
 SELECT
@@ -172,7 +172,7 @@ SELECT
 FROM `web3-publicgoods.ens.resolvers`;
 
 -- Create summary statistics table for monitoring
-CREATE OR REPLACE TABLE `web3-publicgoods.ens.resolvers_stats` AS
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._resolvers_stats` AS
 SELECT
   COUNT(*) AS total_resolver_records,
   COUNT(DISTINCT address) AS unique_resolver_addresses,
