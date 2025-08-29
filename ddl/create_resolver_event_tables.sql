@@ -47,6 +47,7 @@ SELECT
   -- Extract coinType from first 32 bytes of data
   CAST(CONCAT('0x', SUBSTR(data, 3, 64)) AS INT64) AS coinType,
   -- Extract newAddress from remaining data (simplified - actual parsing more complex for dynamic bytes)
+  -- Keep full data as AddressChanged supports multi-chain addresses of various lengths
   CONCAT('0x', SUBSTR(data, 131)) AS newAddress,
   data AS raw_data
 FROM `web3-publicgoods.ens._raw_resolver_events`
@@ -62,8 +63,8 @@ SELECT
   log_index,
   address,
   topics[SAFE_OFFSET(1)] AS node,
-  topics[SAFE_OFFSET(2)] AS owner,
-  topics[SAFE_OFFSET(3)] AS target,
+  CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,
+  CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(3)], 27)) AS target,
   -- Decode boolean from data field
   `web3-publicgoods.ens.DECODE_ABI_BOOL`(data) AS isAuthorised
 FROM `web3-publicgoods.ens._raw_resolver_events`
