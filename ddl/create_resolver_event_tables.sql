@@ -1,10 +1,10 @@
--- Create resolver event tables by parsing raw data directly
--- Uses proper ABI decoding for data fields that contain encoded strings/bytes
+-- Create resolver event tables using ens-manager.token.decode_log where possible
+-- Note: decode_log has issues with indexed string parameters, so some events use custom decoding
 -- ======================
 -- RESOLVER EVENTS
 -- ======================
 
--- Note: DECODE_ABI_STRING and DECODE_ABI_BOOL functions are defined in create_functions.sql
+-- Uses ens-manager.token.decode_log for events without indexed strings, custom decoders otherwise
 
 -- Resolver ABIChanged events (bytes32 node, uint256 contentType)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_resolver_ABIChanged` AS
@@ -65,8 +65,7 @@ SELECT
   topics[SAFE_OFFSET(2)] AS owner,
   topics[SAFE_OFFSET(3)] AS target,
   -- Decode boolean from data field
-  `web3-publicgoods.ens.DECODE_ABI_BOOL`(data) AS isAuthorised,
-  data AS raw_data
+  `web3-publicgoods.ens.DECODE_ABI_BOOL`(data) AS isAuthorised
 FROM `web3-publicgoods.ens._raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("AuthorisationChanged(bytes32,address,address,bool)");
 
@@ -132,7 +131,26 @@ FROM `web3-publicgoods.ens._raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("InterfaceChanged(bytes32,bytes4,address)");
 
 -- Resolver NameChanged events (bytes32 node, string name)
+-- This event works fine with decode_log (no indexed strings)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_resolver_NameChanged` AS
+WITH decoded_events AS (
+  SELECT
+    transaction_hash,
+    block_number,
+    block_timestamp,
+    block_hash,
+    log_index,
+    address,
+    topics,
+    data,
+    `ens-manager.token.decode_log`(
+      'NameChanged(bytes32 indexed node, string name)',
+      data,
+      topics
+    ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_resolver_events`
+  WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NameChanged(bytes32,string)")
+)
 SELECT
   transaction_hash,
   block_number,
@@ -141,11 +159,8 @@ SELECT
   log_index,
   address,
   topics[SAFE_OFFSET(1)] AS node,
-  -- Decode string name from data field
-  `web3-publicgoods.ens.DECODE_ABI_STRING`(data, 1) AS domain_name,
-  data AS raw_data
-FROM `web3-publicgoods.ens._raw_resolver_events`
-WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NameChanged(bytes32,string)");
+  decoded_data[SAFE_OFFSET(0)] AS domain_name
+FROM decoded_events;
 
 -- Resolver PubkeyChanged events (bytes32 node, bytes32 x, bytes32 y)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_resolver_PubkeyChanged` AS
@@ -164,6 +179,7 @@ FROM `web3-publicgoods.ens._raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("PubkeyChanged(bytes32,bytes32,bytes32)");
 
 -- Resolver TextChanged events - v3 format (bytes32 node, string indexedKey, string key)
+-- Note: decode_log fails with indexed strings, so using custom decoder
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_resolver_TextChanged_v3` AS
 SELECT
   transaction_hash,
@@ -176,12 +192,12 @@ SELECT
   topics[SAFE_OFFSET(2)] AS indexedKey,
   -- Decode the key string from data field
   `web3-publicgoods.ens.DECODE_ABI_STRING`(data, 1) AS text_key,
-  'v3' AS version,
-  data AS raw_data
+  'v3' AS version
 FROM `web3-publicgoods.ens._raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("TextChanged(bytes32,string,string)");
 
 -- Resolver TextChanged events - v4 format (bytes32 node, string indexedKey, string key, string value)
+-- Note: decode_log fails with indexed strings, so using custom decoder
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_resolver_TextChanged_v4` AS
 SELECT
   transaction_hash,
@@ -196,8 +212,7 @@ SELECT
   `web3-publicgoods.ens.DECODE_ABI_STRING`(data, 1) AS text_key,
   -- Decode value from second string parameter  
   `web3-publicgoods.ens.DECODE_ABI_STRING`(data, 2) AS text_value,
-  'v4' AS version,
-  data AS raw_data
+  'v4' AS version
 FROM `web3-publicgoods.ens._raw_resolver_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("TextChanged(bytes32,string,string,string)");
 
