@@ -57,16 +57,16 @@ FROM (
     block_number,
     block_timestamp,
     transaction_hash,
-    to_address,
-    `web3-publicgoods.ens.DECODE_SET_NAME`(input) AS decoded
+    action.to_address,
+    `web3-publicgoods.ens.DECODE_SET_NAME`(action.input) AS decoded
   FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.traces`
-  WHERE to_address IN (
+  WHERE action.to_address IN (
     '0x5fbb459c49bb06083c33109fa4f14810ec2cf358',  -- Old resolver with event issues
     '0xa2c122be93b0074270ebee7f6b7292c7deb45047'   -- Another old resolver
   )
-  AND SUBSTR(input, 1, 10) = '0x77372213'  -- setName function selector
+  AND SUBSTR(action.input, 1, 10) = '0x77372213'  -- setName function selector
   AND trace_type = 'call'
-  AND status = 1  -- Only successful calls
+  AND error IS NULL  -- Only successful calls
 )
 WHERE decoded.node IS NOT NULL 
   AND decoded.name IS NOT NULL
