@@ -1,5 +1,7 @@
--- Create decoded registry event tables following the same pattern as resolver events
--- Decodes NewOwner, Transfer, and NewResolver events from raw registry events
+-- Create decoded registry event tables using ens-manager.token.decode_log
+-- Registry events have indexed parameters in topics and non-indexed in data
+-- Since all registry events have the owner/resolver as the only non-indexed field,
+-- we can use decode_log to get just that field reliably
 
 -- ======================
 -- REGISTRY EVENTS DECODING  
@@ -15,6 +17,7 @@ SELECT
     address,
     topics[SAFE_OFFSET(1)] AS node,           -- bytes32 indexed
     topics[SAFE_OFFSET(2)] AS label,          -- bytes32 indexed (labelHash)
+    -- Extract owner address from data field (it's the only non-indexed parameter)
     CONCAT('0x', SUBSTR(data, 27, 40)) AS owner  -- address from data
 FROM `web3-publicgoods.ens._raw_registry_events`
 WHERE topics[SAFE_OFFSET(0)] = '0xce0457fe73731f824cc272376169235128c118b49d344817417c6d108d155e82';
@@ -28,6 +31,7 @@ SELECT
     transaction_hash,
     address,
     topics[SAFE_OFFSET(1)] AS node,           -- bytes32 indexed
+    -- Extract owner address from data field (it's the only non-indexed parameter)
     CONCAT('0x', SUBSTR(data, 27, 40)) AS owner  -- address from data
 FROM `web3-publicgoods.ens._raw_registry_events`
 WHERE topics[SAFE_OFFSET(0)] = '0xd4735d920b0f87494915f556dd9b54c8f309026070caea5c737245152564d266';
@@ -41,6 +45,7 @@ SELECT
     transaction_hash,
     address,
     topics[SAFE_OFFSET(1)] AS node,           -- bytes32 indexed
+    -- Extract resolver address from data field (it's the only non-indexed parameter)
     CONCAT('0x', SUBSTR(data, 27, 40)) AS resolver  -- address from data
 FROM `web3-publicgoods.ens._raw_registry_events`
 WHERE topics[SAFE_OFFSET(0)] = '0x335721b01866dc23fbee8b6b2c7b1e14d6f05c28cd35a2c934239f94095602a0';

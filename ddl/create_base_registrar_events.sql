@@ -1,5 +1,11 @@
 -- Create raw and decoded BaseRegistrarImplementation event tables
 -- This extracts events directly from crypto_ethereum.logs for better data coverage
+-- Event signatures are computed using ens-manager.token.get_topic_hash function
+
+-- Set event signature variables
+DECLARE name_migrated_sig STRING DEFAULT `ens-manager.token.get_topic_hash`('NameMigrated(uint256 indexed id, address indexed owner, uint256 expires)');
+DECLARE name_registered_sig STRING DEFAULT `ens-manager.token.get_topic_hash`('NameRegistered(uint256 indexed id, address indexed owner, uint256 expires)');
+DECLARE name_renewed_sig STRING DEFAULT `ens-manager.token.get_topic_hash`('NameRenewed(uint256 indexed id, uint256 expires)');
 
 -- Create raw BaseRegistrarImplementation events table
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._raw_base_registrar_events` AS
@@ -14,58 +20,106 @@ SELECT
 FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address = '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'  -- BaseRegistrar (correct address from YAML)
   AND topics[SAFE_OFFSET(0)] IN (
-    '0xea3d7e1195a15d2ddcd859b01abd4c6b960fa9f9264e499a70a90c7f0c64b717',  -- NameMigrated
-    '0xb3d987963d01b2f68493b4bdb130988f157ea43070d4ad840fee0466ed9370d9',  -- NameRegistered  
-    '0x9b87a00e30f1ac65d898f070f8a3488fe60517182d0a2098e1b4b93a54aa9bd6'   -- NameRenewed
+    name_migrated_sig,   -- NameMigrated
+    name_registered_sig, -- NameRegistered  
+    name_renewed_sig     -- NameRenewed
   );
 
 
--- Create decoded NameMigrated events table
+-- Create decoded NameMigrated events table using ens-manager.token.decode_log
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_base_registrar_NameMigrated` AS
+WITH decoded_events AS (
+  SELECT 
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics,
+    data,
+    -- Decode using ens-manager's decode_log function
+    `ens-manager.token.decode_log`(
+      'NameMigrated(uint256 indexed id, address indexed owner, uint256 expires)',
+      data,
+      topics
+    ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_base_registrar_events`
+  WHERE topics[SAFE_OFFSET(0)] = name_migrated_sig  -- NameMigrated
+)
 SELECT 
     block_timestamp,
     block_number,
     log_index,
     transaction_hash,
     address,
-    -- Indexed parameters from topics
-    topics[SAFE_OFFSET(1)] AS id,           -- uint256 id (indexed) - already in hex
-    topics[SAFE_OFFSET(2)] AS owner,        -- address owner (indexed) - already in hex
-    -- Non-indexed parameter from data field (expires is last 16 hex chars)
-    SAFE_CAST(CONCAT('0x', SUBSTR(data, -16)) AS INT64) AS expires,  -- uint256 expires (in data)
-    -- Use the id topic directly as labelhash (it's the keccak256 hash)
-    topics[SAFE_OFFSET(1)] AS labelhash
-FROM `web3-publicgoods.ens._raw_base_registrar_events`
-WHERE topics[SAFE_OFFSET(0)] = '0xea3d7e1195a15d2ddcd859b01abd4c6b960fa9f9264e499a70a90c7f0c64b717'  -- NameMigrated
-  AND data IS NOT NULL;
-
--- Create decoded NameRegistered events table
-CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_base_registrar_NameRegistered` AS
-SELECT 
-    block_timestamp,
-    block_number,
-    log_index,
-    transaction_hash,
-    address,
+    -- Extract fields from topics and decoded data
     topics[SAFE_OFFSET(1)] AS id,           -- uint256 id (indexed)
     topics[SAFE_OFFSET(2)] AS owner,        -- address owner (indexed)
-    SAFE_CAST(CONCAT('0x', SUBSTR(data, -16)) AS INT64) AS expires,  -- uint256 expires (in data)
+    SAFE_CAST(decoded_data[SAFE_OFFSET(2)] AS INT64) AS expires,  -- uint256 expires
     topics[SAFE_OFFSET(1)] AS labelhash     -- Use id as labelhash
-FROM `web3-publicgoods.ens._raw_base_registrar_events`
-WHERE topics[SAFE_OFFSET(0)] = '0xb3d987963d01b2f68493b4bdb130988f157ea43070d4ad840fee0466ed9370d9'  -- NameRegistered
-  AND data IS NOT NULL;
+FROM decoded_events;
 
--- Create decoded NameRenewed events table
-CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_base_registrar_NameRenewed` AS
+-- Create decoded NameRegistered events table using ens-manager.token.decode_log
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_base_registrar_NameRegistered` AS
+WITH decoded_events AS (
+  SELECT 
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics,
+    data,
+    -- Decode using ens-manager's decode_log function
+    `ens-manager.token.decode_log`(
+      'NameRegistered(uint256 indexed id, address indexed owner, uint256 expires)',
+      data,
+      topics
+    ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_base_registrar_events`
+  WHERE topics[SAFE_OFFSET(0)] = name_registered_sig  -- NameRegistered
+)
 SELECT 
     block_timestamp,
     block_number,
     log_index,
     transaction_hash,
     address,
+    -- Extract fields from topics and decoded data
     topics[SAFE_OFFSET(1)] AS id,           -- uint256 id (indexed)
-    SAFE_CAST(CONCAT('0x', SUBSTR(data, -16)) AS INT64) AS expires,  -- uint256 expires (in data)
+    topics[SAFE_OFFSET(2)] AS owner,        -- address owner (indexed)
+    SAFE_CAST(decoded_data[SAFE_OFFSET(2)] AS INT64) AS expires,  -- uint256 expires
     topics[SAFE_OFFSET(1)] AS labelhash     -- Use id as labelhash
-FROM `web3-publicgoods.ens._raw_base_registrar_events`
-WHERE topics[SAFE_OFFSET(0)] = '0x9b87a00e30f1ac65d898f070f8a3488fe60517182d0a2098e1b4b93a54aa9bd6'   -- NameRenewed
-  AND data IS NOT NULL;
+FROM decoded_events;
+
+-- Create decoded NameRenewed events table using ens-manager.token.decode_log
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_base_registrar_NameRenewed` AS
+WITH decoded_events AS (
+  SELECT 
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics,
+    data,
+    -- Decode using ens-manager's decode_log function
+    `ens-manager.token.decode_log`(
+      'NameRenewed(uint256 indexed id, uint256 expires)',
+      data,
+      topics
+    ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_base_registrar_events`
+  WHERE topics[SAFE_OFFSET(0)] = name_renewed_sig   -- NameRenewed
+)
+SELECT 
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    -- Extract fields from topics and decoded data
+    topics[SAFE_OFFSET(1)] AS id,           -- uint256 id (indexed)
+    SAFE_CAST(decoded_data[SAFE_OFFSET(1)] AS INT64) AS expires,  -- uint256 expires
+    topics[SAFE_OFFSET(1)] AS labelhash     -- Use id as labelhash
+FROM decoded_events;
