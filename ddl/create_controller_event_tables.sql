@@ -50,7 +50,7 @@ SELECT
     address,
     -- Extract fields from decoded data array
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
-    topics[SAFE_OFFSET(2)] AS owner,     -- address owner (indexed) 
+    CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,     -- address owner (indexed, extract last 20 bytes) 
     decoded_data[SAFE_OFFSET(0)] AS name, -- string name (decoded with full Unicode support)
     -- Handle cost calculation based on controller version
     CASE 

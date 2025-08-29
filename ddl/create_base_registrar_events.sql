@@ -54,7 +54,7 @@ SELECT
     address,
     -- Extract fields from topics and decoded data
     topics[SAFE_OFFSET(1)] AS id,           -- uint256 id (indexed)
-    topics[SAFE_OFFSET(2)] AS owner,        -- address owner (indexed)
+    CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,        -- address owner (indexed, extract last 20 bytes)
     SAFE_CAST(decoded_data[SAFE_OFFSET(2)] AS INT64) AS expires,  -- uint256 expires
     topics[SAFE_OFFSET(1)] AS labelhash     -- Use id as labelhash
 FROM decoded_events;
@@ -87,7 +87,7 @@ SELECT
     address,
     -- Extract fields from topics and decoded data
     topics[SAFE_OFFSET(1)] AS id,           -- uint256 id (indexed)
-    topics[SAFE_OFFSET(2)] AS owner,        -- address owner (indexed)
+    CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,        -- address owner (indexed, extract last 20 bytes)
     SAFE_CAST(decoded_data[SAFE_OFFSET(2)] AS INT64) AS expires,  -- uint256 expires
     topics[SAFE_OFFSET(1)] AS labelhash     -- Use id as labelhash
 FROM decoded_events;
