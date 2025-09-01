@@ -2,11 +2,12 @@
 
 # ENS BigQuery Daily Maintenance Setup - Properly Staggered
 # Creates scheduled queries with realistic time intervals based on query complexity
-# Usage: ./setup_daily_maintenance_staggered.sh [--project-id=PROJECT_ID]
+# Usage: ./setup_daily_scheduled_queries.sh [--project-id=PROJECT_ID] [--start-time=HH:MM]
 
 set -e
 
 PROJECT_ID="web3-publicgoods"
+START_TIME="02:00"  # Default start time
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DDL_DIR="$(dirname "$SCRIPT_DIR")/ddl"
 
@@ -17,31 +18,46 @@ for arg in "$@"; do
             PROJECT_ID="${arg#*=}"
             shift
             ;;
+        --start-time=*)
+            START_TIME="${arg#*=}"
+            shift
+            ;;
         -h|--help)
-            echo "Usage: $0 [--project-id=PROJECT_ID]"
+            echo "Usage: $0 [--project-id=PROJECT_ID] [--start-time=HH:MM]"
             echo ""
             echo "Creates daily scheduled queries with proper time intervals"
             echo ""
+            echo "Options:"
+            echo "  --project-id=ID    BigQuery project ID (default: web3-publicgoods)"
+            echo "  --start-time=HH:MM Base start time in 24h format (default: 02:00)"
+            echo ""
             echo "Staggered Schedule (allows sufficient runtime):"
-            echo "  Tier 1 - Event Decoding (2:00-2:45 AM):"
-            echo "    - 2:00 AM: Controller events (small, ~2 min)"
-            echo "    - 2:10 AM: Base registrar events (small, ~2 min)"
-            echo "    - 2:20 AM: Resolver events (large, ~5 min)"
-            echo "    - 2:30 AM: Registry events (medium, ~3 min)"
-            echo "    - 2:40 AM: Historical traces (medium, ~3 min)"
+            echo "  Tier 1 - Event Decoding (start + 0-40 min):"
+            echo "    - +0 min: Controller events (small, ~2 min)"
+            echo "    - +10 min: Base registrar events (small, ~2 min)"
+            echo "    - +20 min: Resolver events (large, ~5 min)"
+            echo "    - +30 min: Registry events (medium, ~3 min)"
+            echo "    - +40 min: Historical traces (medium, ~3 min)"
             echo ""
-            echo "  Tier 2 - State Computation (3:00-3:30 AM):"
-            echo "    - 3:00 AM: State resolver (large, ~5 min)"
-            echo "    - 3:10 AM: State registry (medium, ~3 min)"
-            echo "    - 3:20 AM: Aggregated resolver (medium, ~3 min)"
-            echo "    - 3:25 AM: Aggregated registry (small, ~2 min)"
+            echo "  Tier 2 - State Computation (start + 60-85 min):"
+            echo "    - +60 min: State resolver (large, ~5 min)"
+            echo "    - +70 min: State registry (medium, ~3 min)"
+            echo "    - +80 min: Aggregated resolver (medium, ~3 min)"
+            echo "    - +85 min: Aggregated registry (small, ~2 min)"
             echo ""
-            echo "  Tier 3 - Production Tables (4:00-4:30 AM):"
-            echo "    - 4:00 AM: Resolver table (medium, ~3 min)"
-            echo "    - 4:05 AM: Registry table (small, ~2 min)"
-            echo "    - 4:10 AM: Registration periods (large, ~5 min)"
-            echo "    - 4:20 AM: Reverse records (medium, ~3 min)"
-            echo "    - 4:25 AM: Resolutions (small, ~2 min)"
+            echo "  Tier 3 - Production Tables (start + 120-145 min):"
+            echo "    - +120 min: Resolver table (medium, ~3 min)"
+            echo "    - +125 min: Registry table (small, ~2 min)"
+            echo "    - +130 min: Registration periods (large, ~5 min)"
+            echo "    - +140 min: Reverse records (medium, ~3 min)"
+            echo "    - +145 min: Resolutions (small, ~2 min)"
+            echo ""
+            echo "Examples:"
+            echo "  # Use default 2:00 AM start time"
+            echo "  $0 --project-id=web3-publicgoods"
+            echo ""
+            echo "  # Start at current time + 5 minutes for testing"
+            echo "  $0 --project-id=web3-publicgoods --start-time=14:30"
             exit 0
             ;;
         *)
@@ -57,7 +73,30 @@ echo "Project ID: $PROJECT_ID"
 echo ""
 echo "Strategy: Staggered intervals based on query complexity"
 echo "         10-minute gaps for large queries, 5-minute for small ones"
+echo "Start time: $START_TIME"
 echo ""
+
+# Function to calculate time offset from base start time
+calculate_time() {
+    local base_time="$1"
+    local offset_minutes="$2"
+    
+    # Extract hour and minute from base time
+    local base_hour=$(echo "$base_time" | cut -d':' -f1)
+    local base_minute=$(echo "$base_time" | cut -d':' -f2)
+    
+    # Convert to total minutes
+    local total_minutes=$((base_hour * 60 + base_minute + offset_minutes))
+    
+    # Handle overflow to next day
+    total_minutes=$((total_minutes % 1440))  # 1440 minutes in a day
+    
+    # Convert back to HH:MM
+    local new_hour=$((total_minutes / 60))
+    local new_minute=$((total_minutes % 60))
+    
+    printf "%02d:%02d" "$new_hour" "$new_minute"
+}
 
 # Clean up existing queries (except working incremental)
 echo "🗑️  Cleaning up existing queries..."
@@ -76,27 +115,27 @@ fi
 echo ""
 
 # Define queries with proper intervals based on complexity
-# Format: "filename|schedule|display_name|estimated_runtime"
+# Format: "filename|offset_minutes|display_name|estimated_runtime"
 queries=(
-    # Tier 1: Event Decoding (2:00-2:45 AM)
-    "create_controller_event_tables.sql|every day 02:00|ENS: Controller Events|2min"
-    "create_base_registrar_events.sql|every day 02:10|ENS: Base Registrar Events|2min"
-    "create_resolver_event_tables.sql|every day 02:20|ENS: Resolver Events|5min"
-    "create_registry_event_tables.sql|every day 02:30|ENS: Registry Events|3min"
-    "create_historical_reverse_traces.sql|every day 02:40|ENS: Historical Traces|3min"
+    # Tier 1: Event Decoding (start + 0-45 minutes)
+    "create_controller_event_tables.sql|0|ENS: Controller Events|2min"
+    "create_base_registrar_events.sql|10|ENS: Base Registrar Events|2min"
+    "create_resolver_event_tables.sql|20|ENS: Resolver Events|5min"
+    "create_registry_event_tables.sql|30|ENS: Registry Events|3min"
+    "create_historical_reverse_traces.sql|40|ENS: Historical Traces|3min"
     
-    # Tier 2: State Computation (3:00-3:30 AM) 
-    "create_state_resolver.sql|every day 03:00|ENS: State Resolver|5min"
-    "create_state_registry.sql|every day 03:10|ENS: State Registry|3min"
-    "create_aggregated_resolver.sql|every day 03:20|ENS: Aggregated Resolver|3min"
-    "create_aggregated_registry.sql|every day 03:25|ENS: Aggregated Registry|2min"
+    # Tier 2: State Computation (start + 60-90 minutes) 
+    "create_state_resolver.sql|60|ENS: State Resolver|5min"
+    "create_state_registry.sql|70|ENS: State Registry|3min"
+    "create_aggregated_resolver.sql|80|ENS: Aggregated Resolver|3min"
+    "create_aggregated_registry.sql|85|ENS: Aggregated Registry|2min"
     
-    # Tier 3: Production Tables (4:00-4:30 AM)
-    "create_resolver_table.sql|every day 04:00|ENS: Resolver Table|3min"
-    "create_registry_table.sql|every day 04:05|ENS: Registry Table|2min"
-    "create_registration_periods_table.sql|every day 04:10|ENS: Registration Periods|5min"
-    "create_reverse_records_table.sql|every day 04:20|ENS: Reverse Records|3min"
-    "create_resolutions_table.sql|every day 04:25|ENS: Resolutions Table|2min"
+    # Tier 3: Production Tables (start + 120-145 minutes)
+    "create_resolver_table.sql|120|ENS: Resolver Table|3min"
+    "create_registry_table.sql|125|ENS: Registry Table|2min"
+    "create_registration_periods_table.sql|130|ENS: Registration Periods|5min"
+    "create_reverse_records_table.sql|140|ENS: Reverse Records|3min"
+    "create_resolutions_table.sql|145|ENS: Resolutions Table|2min"
 )
 
 # Create scheduled queries
@@ -104,12 +143,16 @@ echo "📅 Creating scheduled queries with proper intervals..."
 echo ""
 
 for query_def in "${queries[@]}"; do
-    IFS='|' read -r file schedule display_name runtime <<< "$query_def"
+    IFS='|' read -r file offset_minutes display_name runtime <<< "$query_def"
     
     if [[ ! -f "$DDL_DIR/$file" ]]; then
         echo "⚠️  Skipping missing file: $file"
         continue
     fi
+    
+    # Calculate the scheduled time
+    scheduled_time=$(calculate_time "$START_TIME" "$offset_minutes")
+    schedule="every day $scheduled_time"
     
     echo "⏰ $schedule - $display_name"
     echo "   File: $file"
@@ -135,13 +178,20 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "📊 Schedule Summary:"
 echo ""
-echo "  🕐 2:00-2:45 AM: Event Decoding (5 queries)"
+tier1_start=$(calculate_time "$START_TIME" 0)
+tier1_end=$(calculate_time "$START_TIME" 40)
+tier2_start=$(calculate_time "$START_TIME" 60)
+tier2_end=$(calculate_time "$START_TIME" 85)
+tier3_start=$(calculate_time "$START_TIME" 120)
+tier3_end=$(calculate_time "$START_TIME" 145)
+
+echo "  🕐 $tier1_start-$tier1_end: Event Decoding (5 queries)"
 echo "     10-minute gaps for safety"
 echo ""
-echo "  🕒 3:00-3:30 AM: State Computation (4 queries)"
+echo "  🕒 $tier2_start-$tier2_end: State Computation (4 queries)"
 echo "     Mixed 5-10 minute gaps based on complexity"
 echo ""
-echo "  🕓 4:00-4:30 AM: Production Tables (5 queries)"
+echo "  🕓 $tier3_start-$tier3_end: Production Tables (5 queries)"
 echo "     5-10 minute gaps based on table size"
 echo ""
 echo "✅ Benefits:"
