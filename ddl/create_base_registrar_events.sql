@@ -1,6 +1,11 @@
 -- Create raw and decoded BaseRegistrarImplementation event tables
 -- This extracts events directly from crypto_ethereum.logs for better data coverage
 -- Event signatures are computed using ens-manager.token.get_topic_hash function
+-- INCREMENTAL MODE: Only processes blocks newer than checkpoint when checkpoint table exists
+
+-- INCREMENTAL CONFIGURATION:
+-- Uses checkpoint table if it exists, otherwise processes all blocks (0)
+-- This approach works in both scheduled queries and manual runs
 
 -- Set event signature variables
 DECLARE name_migrated_sig STRING DEFAULT `ens-manager.token.get_topic_hash`('NameMigrated(uint256 indexed id, address indexed owner, uint256 expires)');
@@ -23,6 +28,11 @@ WHERE address = '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'  -- BaseRegistrar (
     name_migrated_sig,   -- NameMigrated
     name_registered_sig, -- NameRegistered  
     name_renewed_sig     -- NameRenewed
+  )
+  -- INCREMENTAL: Only get blocks after checkpoint (0 if checkpoint doesn't exist)
+  AND block_number > IFNULL(
+    (SELECT MAX(last_processed_block) FROM `web3-publicgoods.ens._pipeline_checkpoint`),
+    0
   );
 
 

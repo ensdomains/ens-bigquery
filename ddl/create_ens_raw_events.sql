@@ -1,5 +1,10 @@
 -- Create all ENS raw event tables by extracting from Ethereum logs
 -- Each table filters events by contract addresses for different ENS event types
+-- INCREMENTAL MODE: Only processes blocks newer than checkpoint when checkpoint table exists
+
+-- INCREMENTAL CONFIGURATION:
+-- Uses checkpoint table if it exists, otherwise processes all blocks (0)
+-- This approach works in both scheduled queries and manual runs
 
 -- 1. ENS Registry events (current and legacy)
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._raw_registry_events` AS
@@ -21,6 +26,11 @@ WHERE address IN (
     '0x314159265dd8dbb310642f98f50c066173c1259b'
 )
 AND block_timestamp >= '2017-05-04'  -- ENS launch date
+-- INCREMENTAL: Only get blocks after checkpoint (0 if checkpoint doesn't exist)
+AND block_number > IFNULL(
+    (SELECT MAX(last_processed_block) FROM `web3-publicgoods.ens._pipeline_checkpoint`),
+    0
+)
 ORDER BY block_number, log_index;
 
 -- 2. PublicResolver events (all versions)
@@ -50,6 +60,11 @@ WHERE address IN (
     '0xd3ddccdd3b25a8a7423b5bee360a42146eb4baf3'
 )
 AND block_timestamp >= '2017-05-04'  -- ENS launch date
+-- INCREMENTAL: Only get blocks after checkpoint (0 if checkpoint doesn't exist)
+AND block_number > IFNULL(
+    (SELECT MAX(last_processed_block) FROM `web3-publicgoods.ens._pipeline_checkpoint`),
+    0
+)
 ORDER BY block_number, log_index;
 
 -- 3. BaseRegistrar events
@@ -70,6 +85,11 @@ WHERE address IN (
     '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85'
 )
 AND block_timestamp >= '2019-05-04'  -- BaseRegistrar deployment date
+-- INCREMENTAL: Only get blocks after checkpoint (0 if checkpoint doesn't exist)
+AND block_number > IFNULL(
+    (SELECT MAX(last_processed_block) FROM `web3-publicgoods.ens._pipeline_checkpoint`),
+    0
+)
 ORDER BY block_number, log_index;
 
 -- 4. EthRegistrarController events (all versions)
@@ -93,6 +113,11 @@ WHERE address IN (
     '0x253553366da8546fc250f225fe3d25d0c782303b'   -- Controller v4 (current)
 )
 AND block_timestamp >= '2019-05-04'  -- Controller deployment date
+-- INCREMENTAL: Only get blocks after checkpoint (0 if checkpoint doesn't exist)
+AND block_number > IFNULL(
+    (SELECT MAX(last_processed_block) FROM `web3-publicgoods.ens._pipeline_checkpoint`),
+    0
+)
 ORDER BY block_number, log_index;
 
 -- 5. NameWrapper events
@@ -113,4 +138,9 @@ WHERE address IN (
     '0xd4416b13d2b3a9abae7acd5797e58e1aaf138218'
 )
 AND block_timestamp >= '2022-09-14'  -- NameWrapper deployment date
+-- INCREMENTAL: Only get blocks after checkpoint (0 if checkpoint doesn't exist)
+AND block_number > IFNULL(
+    (SELECT MAX(last_processed_block) FROM `web3-publicgoods.ens._pipeline_checkpoint`),
+    0
+)
 ORDER BY block_number, log_index;
