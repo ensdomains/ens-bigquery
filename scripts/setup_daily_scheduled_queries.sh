@@ -32,25 +32,30 @@ for arg in "$@"; do
             echo "  --start-time=HH:MM Base start time in 24h format (default: 02:00)"
             echo ""
             echo "Staggered Schedule (allows sufficient runtime):"
-            echo "  Tier 1 - Event Decoding (start + 0-40 min):"
-            echo "    - +0 min: Controller events (small, ~2 min)"
-            echo "    - +10 min: Base registrar events (small, ~2 min)"
-            echo "    - +20 min: Resolver events (large, ~5 min)"
-            echo "    - +30 min: Registry events (medium, ~3 min)"
-            echo "    - +40 min: Historical traces (medium, ~3 min)"
+            echo "  Tier 0 - Foundation (start + 0-15 min):"
+            echo "    - +0 min: UDF Functions (small, ~1 min)"
+            echo "    - +2 min: Raw Events Incremental (large, ~10 min)"
+            echo "    - +13 min: Base Registrar Incremental (small, ~2 min)"
             echo ""
-            echo "  Tier 2 - State Computation (start + 60-85 min):"
-            echo "    - +60 min: State resolver (large, ~5 min)"
-            echo "    - +70 min: State registry (medium, ~3 min)"
-            echo "    - +80 min: Aggregated resolver (medium, ~3 min)"
-            echo "    - +85 min: Aggregated registry (small, ~2 min)"
+            echo "  Tier 1 - Event Decoding (start + 20-55 min):"
+            echo "    - +20 min: Controller events (small, ~2 min)"
+            echo "    - +25 min: Base registrar events (small, ~2 min)"
+            echo "    - +30 min: Resolver events (large, ~5 min)"
+            echo "    - +40 min: Registry events (medium, ~3 min)"
+            echo "    - +50 min: Historical traces (medium, ~3 min)"
             echo ""
-            echo "  Tier 3 - Production Tables (start + 120-145 min):"
-            echo "    - +120 min: Resolver table (medium, ~3 min)"
-            echo "    - +125 min: Registry table (small, ~2 min)"
-            echo "    - +130 min: Registration periods (large, ~5 min)"
-            echo "    - +140 min: Reverse records (medium, ~3 min)"
-            echo "    - +145 min: Resolutions (small, ~2 min)"
+            echo "  Tier 2 - State Computation (start + 70-95 min):"
+            echo "    - +70 min: State resolver (large, ~5 min)"
+            echo "    - +80 min: State registry (medium, ~3 min)"
+            echo "    - +85 min: Aggregated resolver (medium, ~3 min)"
+            echo "    - +90 min: Aggregated registry (small, ~2 min)"
+            echo ""
+            echo "  Tier 3 - Production Tables (start + 100-130 min):"
+            echo "    - +100 min: Resolver table (medium, ~3 min)"
+            echo "    - +105 min: Registry table (small, ~2 min)"
+            echo "    - +110 min: Registration periods (large, ~5 min)"
+            echo "    - +120 min: Reverse records (medium, ~3 min)"
+            echo "    - +125 min: Resolutions (small, ~2 min)"
             echo ""
             echo "Examples:"
             echo "  # Use default 2:00 AM start time"
@@ -117,25 +122,30 @@ echo ""
 # Define queries with proper intervals based on complexity
 # Format: "filename|offset_minutes|display_name|estimated_runtime"
 queries=(
-    # Tier 1: Event Decoding (start + 0-45 minutes)
-    "create_controller_event_tables.sql|0|ENS: Controller Events|2min"
-    "create_base_registrar_events.sql|10|ENS: Base Registrar Events|2min"
-    "create_resolver_event_tables.sql|20|ENS: Resolver Events|5min"
-    "create_registry_event_tables.sql|30|ENS: Registry Events|3min"
-    "create_historical_reverse_traces.sql|40|ENS: Historical Traces|3min"
+    # Tier 0: Foundation (start + 0-15 minutes)
+    "create_functions.sql|0|ENS: UDF Functions|1min"
+    "create_ens_raw_events_incremental_scheduled.sql|2|ENS: Raw Events Incremental|10min"
+    "create_base_registrar_events_incremental_scheduled.sql|13|ENS: Base Registrar Incremental|2min"
     
-    # Tier 2: State Computation (start + 60-90 minutes) 
-    "create_state_resolver.sql|60|ENS: State Resolver|5min"
-    "create_state_registry.sql|70|ENS: State Registry|3min"
-    "create_aggregated_resolver.sql|80|ENS: Aggregated Resolver|3min"
-    "create_aggregated_registry.sql|85|ENS: Aggregated Registry|2min"
+    # Tier 1: Event Decoding (start + 20-55 minutes)
+    "create_controller_event_tables.sql|20|ENS: Controller Events|2min"
+    "create_base_registrar_events.sql|25|ENS: Base Registrar Events|2min"
+    "create_resolver_event_tables.sql|30|ENS: Resolver Events|5min"
+    "create_registry_event_tables.sql|40|ENS: Registry Events|3min"
+    "create_historical_reverse_traces.sql|50|ENS: Historical Traces|3min"
     
-    # Tier 3: Production Tables (start + 120-145 minutes)
-    "create_resolver_table.sql|120|ENS: Resolver Table|3min"
-    "create_registry_table.sql|125|ENS: Registry Table|2min"
-    "create_registration_periods_table.sql|130|ENS: Registration Periods|5min"
-    "create_reverse_records_table.sql|140|ENS: Reverse Records|3min"
-    "create_resolutions_table.sql|145|ENS: Resolutions Table|2min"
+    # Tier 2: State Computation (start + 70-95 minutes) 
+    "create_state_resolver.sql|70|ENS: State Resolver|5min"
+    "create_state_registry.sql|80|ENS: State Registry|3min"
+    "create_aggregated_resolver.sql|85|ENS: Aggregated Resolver|3min"
+    "create_aggregated_registry.sql|90|ENS: Aggregated Registry|2min"
+    
+    # Tier 3: Production Tables (start + 100-130 minutes)
+    "create_resolver_table.sql|100|ENS: Resolver Table|3min"
+    "create_registry_table.sql|105|ENS: Registry Table|2min"
+    "create_registration_periods_table.sql|110|ENS: Registration Periods|5min"
+    "create_reverse_records_table.sql|120|ENS: Reverse Records|3min"
+    "create_resolutions_table.sql|125|ENS: Resolutions Table|2min"
 )
 
 # Create scheduled queries
@@ -178,18 +188,23 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "📊 Schedule Summary:"
 echo ""
-tier1_start=$(calculate_time "$START_TIME" 0)
-tier1_end=$(calculate_time "$START_TIME" 40)
-tier2_start=$(calculate_time "$START_TIME" 60)
-tier2_end=$(calculate_time "$START_TIME" 85)
-tier3_start=$(calculate_time "$START_TIME" 120)
-tier3_end=$(calculate_time "$START_TIME" 145)
+tier0_start=$(calculate_time "$START_TIME" 0)
+tier0_end=$(calculate_time "$START_TIME" 15)
+tier1_start=$(calculate_time "$START_TIME" 20)
+tier1_end=$(calculate_time "$START_TIME" 55)
+tier2_start=$(calculate_time "$START_TIME" 70)
+tier2_end=$(calculate_time "$START_TIME" 95)
+tier3_start=$(calculate_time "$START_TIME" 100)
+tier3_end=$(calculate_time "$START_TIME" 130)
 
-echo "  🕐 $tier1_start-$tier1_end: Event Decoding (5 queries)"
-echo "     10-minute gaps for safety"
+echo "  🕐 $tier0_start-$tier0_end: Foundation (3 queries)"
+echo "     Functions + Incremental raw events"
+echo ""
+echo "  🕑 $tier1_start-$tier1_end: Event Decoding (5 queries)"
+echo "     5-10 minute gaps for safety"
 echo ""
 echo "  🕒 $tier2_start-$tier2_end: State Computation (4 queries)"
-echo "     Mixed 5-10 minute gaps based on complexity"
+echo "     5-10 minute gaps based on complexity"
 echo ""
 echo "  🕓 $tier3_start-$tier3_end: Production Tables (5 queries)"
 echo "     5-10 minute gaps based on table size"

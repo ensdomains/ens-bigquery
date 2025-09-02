@@ -2,14 +2,31 @@
 -- This table stores the last processed block number to enable incremental updates
 -- for the expensive raw event extraction stages
 
-CREATE OR REPLACE TABLE `web3-publicgoods.ens._pipeline_checkpoint` AS
+-- Initialize checkpoint table (safe for first run)
+CREATE TABLE IF NOT EXISTS `web3-publicgoods.ens._pipeline_checkpoint` (
+  last_processed_block INT64,
+  last_updated TIMESTAMP,
+  status STRING,
+  blocks_processed INT64,
+  events_processed INT64
+);
+
+-- Insert initial checkpoint if table is empty
+INSERT INTO `web3-publicgoods.ens._pipeline_checkpoint` (
+  last_processed_block,
+  last_updated,
+  status,
+  blocks_processed,
+  events_processed
+)
 SELECT 
-  COALESCE(MAX(block_number), 0) as last_processed_block,
+  0 as last_processed_block,
   CURRENT_TIMESTAMP() as last_updated,
   'initialized' as status,
   0 as blocks_processed,
   0 as events_processed
-FROM `web3-publicgoods.ens._raw_resolver_events`;
+FROM (SELECT 1) dummy
+WHERE NOT EXISTS (SELECT 1 FROM `web3-publicgoods.ens._pipeline_checkpoint`);
 
 -- Add comment for documentation
 ALTER TABLE `web3-publicgoods.ens._pipeline_checkpoint`
