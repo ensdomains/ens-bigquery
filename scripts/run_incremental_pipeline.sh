@@ -56,23 +56,21 @@ done
 
 # Pipeline files in correct execution order
 PIPELINE_FILES=(
-    "create_checkpoint_table.sql"             # Initialize checkpoint (if needed)
-    "create_functions.sql"                    # All UDF functions (must be first!)
-    "create_ens_raw_events.sql"              # INCREMENTAL: Extract raw events
-    "create_controller_event_tables.sql"      # Decode NameRegistered/NameRenewed events
-    "create_base_registrar_events.sql"        # INCREMENTAL: Decode BaseRegistrar events
-    "create_resolver_event_tables.sql"        # Decode all resolver events
-    "create_historical_reverse_traces.sql"    # Load historical traces
-    "create_registry_event_tables.sql"        # Decode registry events
-    "create_state_resolver.sql"               # Compute latest state per node
-    "create_state_registry.sql"               # Compute latest registry state
-    "create_aggregated_resolver.sql"          # Aggregate text records, addresses
-    "create_resolver_table.sql"               # Combine into main resolver table
-    "create_aggregated_registry.sql"          # Aggregate registry data
-    "create_registry_table.sql"               # Create registry table
-    "create_registration_periods_table.sql"   # Registration periods with USD costs
-    "create_reverse_records_table.sql"        # Create reverse records
-    "create_resolutions_table.sql"            # Join registry + resolvers
+    "create_checkpoint_table.sql"                            # Initialize checkpoint (if needed)
+    "create_ens_raw_events_incremental_scheduled.sql"        # INCREMENTAL: Extract raw events
+    "create_controller_event_tables.sql"                     # Decode NameRegistered/NameRenewed events
+    "create_base_registrar_events.sql"                       # INCREMENTAL: Decode BaseRegistrar events (unified version)
+    "create_resolver_event_tables.sql"                       # Decode all resolver events
+    "create_registry_event_tables.sql"                       # Decode registry events
+    "create_state_resolver.sql"                              # Compute latest state per node
+    "create_state_registry.sql"                              # Compute latest registry state
+    "create_aggregated_resolver.sql"                         # Aggregate text records, addresses
+    "create_resolver_table.sql"                              # Combine into main resolver table
+    "create_aggregated_registry.sql"                         # Aggregate registry data
+    "create_registry_table.sql"                              # Create registry table
+    "create_registration_periods_table.sql"                  # Registration periods with USD costs
+    "create_reverse_records_table.sql"                       # Create reverse records
+    "create_resolutions_table.sql"                           # Join registry + resolvers
 )
 
 # Function to run a single DDL file
@@ -186,7 +184,7 @@ echo "📋 Checking pipeline files..."
 for file in "${PIPELINE_FILES[@]}"; do
     if [[ -f "$DDL_DIR/$file" ]]; then
         # Mark incremental stages
-        if [[ "$file" == "create_ens_raw_events.sql" ]] || [[ "$file" == "create_base_registrar_events.sql" ]]; then
+        if [[ "$file" == *"_incremental_scheduled.sql" ]]; then
             echo "✅ $file (INCREMENTAL)"
         elif [[ "$file" == "create_checkpoint_table.sql" ]]; then
             echo "✅ $file (CHECKPOINT)"
@@ -215,7 +213,7 @@ for i in "${!PIPELINE_FILES[@]}"; do
     echo "🎯 STAGE $file_num/$total: $file"
     
     # Mark incremental stages
-    if [[ "$file" == "create_ens_raw_events.sql" ]] || [[ "$file" == "create_base_registrar_events.sql" ]]; then
+    if [[ "$file" == *"_incremental_scheduled.sql" ]]; then
         echo "📈 INCREMENTAL MODE: Processing only new blocks since checkpoint"
     elif [[ "$file" == "create_checkpoint_table.sql" ]]; then
         echo "🔧 CHECKPOINT: Initializing tracking table"

@@ -38,7 +38,6 @@ for arg in "$@"; do
             echo ""
             echo "  Tier 1 - Event Decoding (start + 20-40 min):"
             echo "    - +20 min: Controller events (small, ~2 min)"
-            echo "    - +25 min: Base registrar events (small, ~2 min)"
             echo "    - +30 min: Resolver events (large, ~5 min)"
             echo "    - +40 min: Registry events (medium, ~3 min)"
             echo ""
@@ -122,11 +121,10 @@ echo ""
 queries=(
     # Tier 0: Foundation (start + 0-15 minutes)
     "create_ens_raw_events_incremental_scheduled.sql|0|ENS: Raw Events Incremental|10min"
-    "create_base_registrar_events_incremental_scheduled.sql|11|ENS: Base Registrar Incremental|2min"
+    "create_base_registrar_events.sql|11|ENS: Base Registrar Incremental|2min"
     
     # Tier 1: Event Decoding (start + 20-55 minutes)
     "create_controller_event_tables.sql|20|ENS: Controller Events|2min"
-    "create_base_registrar_events.sql|25|ENS: Base Registrar Events|2min"
     "create_resolver_event_tables.sql|30|ENS: Resolver Events|5min"
     "create_registry_event_tables.sql|40|ENS: Registry Events|3min"
     
@@ -196,7 +194,7 @@ tier3_end=$(calculate_time "$START_TIME" 125)
 echo "  🕐 $tier0_start-$tier0_end: Foundation (2 queries)"
 echo "     Incremental raw events only"
 echo ""
-echo "  🕑 $tier1_start-$tier1_end: Event Decoding (4 queries)"
+echo "  🕑 $tier1_start-$tier1_end: Event Decoding (3 queries)"
 echo "     5-10 minute gaps for safety"
 echo ""
 echo "  🕒 $tier2_start-$tier2_end: State Computation (4 queries)"
