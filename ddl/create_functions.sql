@@ -307,3 +307,20 @@ AS r"""
     return null;
   }
 """;
+
+CREATE OR REPLACE FUNCTION `web3-publicgoods.ens.NAME_TO_LABELHASH`(name STRING)
+RETURNS STRING
+LANGUAGE js
+  OPTIONS (
+    library=["gs://blockchain-etl-bigquery/ethers.js"])
+AS r"""
+    var utils = ethers.utils;
+    var labelHash
+    if(name === null) return '';
+    try{
+      return utils.keccak256(utils.toUtf8Bytes(name));
+    }catch(e){
+      return null
+    }
+    
+""";
