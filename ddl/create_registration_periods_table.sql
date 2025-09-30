@@ -64,8 +64,8 @@ SELECT
       log_index,
       expires,
       cost,
-      NULL AS base_cost,  -- Renewals don't have separate base_cost
-      NULL AS premium,     -- Renewals don't have separate premium
+      cost AS base_cost,  -- For renewals, base_cost equals cost (no premium)
+      0 AS premium,       -- Renewals never have premiums
       'renewed' AS event,
       address
     FROM `web3-publicgoods.ens._decoded_controller_NameRenewed`    
