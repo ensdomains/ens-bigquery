@@ -24,7 +24,9 @@ WHERE
     '0xa58e81fe9b61b5c3fe2afd33cf304c454abfc7cb',
     '0xb22c1c159d12461ea124b0deb4b5b93020e6ad16',
     '0xdaaf96c344f63131acadd0ea35170e7892d3dfba',
-    '0xf0ad5cad05e10572efceb849f6ff0c68f9700455')
+    '0xf0ad5cad05e10572efceb849f6ff0c68f9700455',
+    '0x59e16fccd424cc24e280be16e11bcd56fb0ce547',
+    )
 GROUP BY
   day,
   from_address
