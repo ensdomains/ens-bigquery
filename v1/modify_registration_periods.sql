@@ -124,7 +124,31 @@ FROM ( (
         cost,
         'renewed' AS event
       FROM
-        `ens-manager.names.ETHRegistrarController4_event_NameRenewed_fixed` ) AS events
+        `ens-manager.names.ETHRegistrarController4_event_NameRenewed_fixed`
+      UNION ALL
+      SELECT
+        labelhash,
+        label,
+        NULL AS owner,
+        block_timestamp,
+        log_index,
+        expires,
+        cast(cast(baseCost AS float64) + cast(premium AS float64) AS string) AS cost,
+        'registered' AS event
+      FROM
+        `ens-manager.names.ETHRegistrarController5_event_NameRegistered`
+      UNION ALL
+      SELECT
+        labelhash,
+        label,
+        NULL AS owner,
+        block_timestamp,
+        log_index,
+        expires,
+        cost,
+        'renewed' AS event
+      FROM
+        `ens-manager.names.ETHRegistrarController5_event_NameRenewed_fixed` ) AS events
     WHERE
       1 = 1 QUALIFY TIMESTAMP_DIFF(end_time, start_time, SECOND) > 0 )
   UNION ALL
