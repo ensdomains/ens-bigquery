@@ -127,8 +127,8 @@ FROM ( (
         `ens-manager.names.ETHRegistrarController4_event_NameRenewed_fixed`
       UNION ALL
       SELECT
-        label AS labelhash,
-        name AS label,
+        labelhash,
+        label,
         NULL AS owner,
         block_timestamp,
         log_index,
@@ -139,8 +139,8 @@ FROM ( (
         `ens-manager.names.ETHRegistrarController5_event_NameRegistered`
       UNION ALL
       SELECT
-        label AS labelhash,
-        name AS label,
+        labelhash,
+        label,
         NULL AS owner,
         block_timestamp,
         log_index,

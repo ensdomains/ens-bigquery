@@ -52,11 +52,10 @@ CREATE OR REPLACE TABLE `ens-manager.names.ETHRegistrarController5_event_NameReg
     event[OFFSET(3)] AS baseCost,
     event[OFFSET(4)] AS premium,
     event[OFFSET(5)] AS expires,
-    event[OFFSET(6)] AS referrer,
-    event
+    event[OFFSET(6)] AS referrer
   FROM
     `ens-manager.names.decoded_logs`(
-        "NameRegistered (string label, bytes32 labelhash, address owner, uint256 baseCost, uint256 premium, uint256 expires, bytes32 referrer)"
+        "NameRegistered (string label, bytes32 indexed labelhash, address indexed owner, uint256 baseCost, uint256 premium, uint256 expires, bytes32 referrer)"
     );
 
 CREATE OR REPLACE TABLE `ens-manager.names.ETHRegistrarController5_event_NameRenewed` AS
@@ -73,5 +72,5 @@ CREATE OR REPLACE TABLE `ens-manager.names.ETHRegistrarController5_event_NameRen
     event[OFFSET(4)] AS referrer,
   FROM
     `ens-manager.names.decoded_logs`(
-        "NameRenewed(string label, bytes32 labelhash, uint256 cost, uint256 expires, bytes32 referrer)"
+        "NameRenewed(string label, bytes32 indexed labelhash, uint256 cost, uint256 expires, bytes32 referrer)"
     );
