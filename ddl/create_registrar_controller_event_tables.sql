@@ -37,8 +37,25 @@ SELECT
 FROM `web3-publicgoods.ens._raw_registrar_controller_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NameRegistered(string,bytes32,address,uint256,uint256,uint256)");
 
--- Controller NameRenewed events (string name, bytes32 label, uint256 cost, uint256 expires)
-CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_registrar_controller_NameRenewed` AS
+-- Controller NameRegistered events - v5 format (string label, bytes32 labelhash, address owner, uint256 baseCost, uint256 premium, uint256 expires, bytes32 referrer)
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_registrar_controller_NameRegistered_v5` AS
+SELECT
+  transaction_hash,
+  block_number,
+  block_timestamp,
+  block_hash,
+  log_index,
+  address,
+  topics[SAFE_OFFSET(1)] AS labelhash,
+  topics[SAFE_OFFSET(2)] AS owner,
+  -- Parse data for label, baseCost, premium, expires, referrer (this is simplified)
+  data,
+  'v5' AS version
+FROM `web3-publicgoods.ens._raw_registrar_controller_events`
+WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NameRegistered(string,bytes32,address,uint256,uint256,uint256,bytes32)");
+
+-- Controller NameRenewed events - v3/v4 format (string name, bytes32 label, uint256 cost, uint256 expires)
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_registrar_controller_NameRenewed_v4` AS
 SELECT
   transaction_hash,
   block_number,
@@ -49,6 +66,22 @@ SELECT
   topics[SAFE_OFFSET(1)] AS label,
   -- Parse data for name, cost, expires (simplified)
   data,
-  'both' AS version -- This event format is same across v3 and v4
+  'v3_v4' AS version -- This event format is same across v3 and v4
 FROM `web3-publicgoods.ens._raw_registrar_controller_events`
 WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NameRenewed(string,bytes32,uint256,uint256)");
+
+-- Controller NameRenewed events - v5 format (string label, bytes32 labelhash, uint256 cost, uint256 expires, bytes32 referrer)
+CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_registrar_controller_NameRenewed_v5` AS
+SELECT
+  transaction_hash,
+  block_number,
+  block_timestamp,
+  block_hash,
+  log_index,
+  address,
+  topics[SAFE_OFFSET(1)] AS labelhash,
+  -- Parse data for label, cost, expires, referrer (simplified)
+  data,
+  'v5' AS version
+FROM `web3-publicgoods.ens._raw_registrar_controller_events`
+WHERE topics[SAFE_OFFSET(0)] = `ens-manager.token.get_topic_hash`("NameRenewed(string,bytes32,uint256,uint256,bytes32)");

@@ -116,7 +116,8 @@ SELECT
   topics
 FROM `bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs`
 WHERE address IN (
-  '0x253553366da8546fc250f225fe3d25d0c782303b',  -- ETHRegistrarController v2 (current)
+  '0x59e16fccd424cc24e280be16e11bcd56fb0ce547'  -- ETHRegistrarController v3 (current)
+  '0x253553366da8546fc250f225fe3d25d0c782303b',  -- ETHRegistrarController v2
   '0x283af0b28c62c092c9727f1ee09c02ca627eb7f5',  -- ETHRegistrarController v1
   '0xf0ad5cad05e10572efceb849f6ff0c68f9700455',  -- ETHRegistrarController (old)
   '0xb22c1c159d12461ea124b0deb4b5b93020e6ad16'   -- ETHRegistrarController (old)

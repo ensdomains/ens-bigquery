@@ -90,7 +90,8 @@ WHERE address IN (
     '0xf0ad5cad05e10572efceb849f6ff0c68f9700455',  -- Controller v1
     '0xb22c1c159d12461ea124b0deb4b5b93020e6ad16',  -- Controller v2
     '0x283af0b28c62c092c9727f1ee09c02ca627eb7f5',  -- Controller v3
-    '0x253553366da8546fc250f225fe3d25d0c782303b'   -- Controller v4 (current)
+    '0x253553366da8546fc250f225fe3d25d0c782303b',   -- Controller v4
+    '0x59e16fccd424cc24e280be16e11bcd56fb0ce547',   -- Controller v5 (current)
 )
 AND block_timestamp >= '2019-05-04'  -- Controller deployment date
 ORDER BY block_number, log_index;
