@@ -6,6 +6,9 @@
 -- Uses ens-manager.token.decode_log function for proper Unicode support
 -- Event signatures are computed using ens-manager.token.get_topic_hash function
 
+-- NOTE: Events with extremely long data (>50KB) are excluded as they cause decode_log to fail.
+-- These are rare edge cases with unusually long names that the UDF cannot handle.
+
 -- Set event signature variables
 DECLARE controller_v5_registered_sig STRING DEFAULT `ens-manager.token.get_topic_hash`('NameRegistered(string label, bytes32 indexed labelhash, address indexed owner, uint256 baseCost, uint256 premium, uint256 expires, bytes32 referrer)');
 DECLARE controller_v5_renewed_sig STRING DEFAULT `ens-manager.token.get_topic_hash`('NameRenewed(string label, bytes32 indexed labelhash, uint256 cost, uint256 expires, bytes32 referrer)');
@@ -14,138 +17,148 @@ DECLARE controller_v1_registered_sig STRING DEFAULT `ens-manager.token.get_topic
 DECLARE controller_renewed_sig STRING DEFAULT `ens-manager.token.get_topic_hash`('NameRenewed(string name, bytes32 indexed label, uint256 cost, uint256 expires)');
 
 -- Create decoded NameRegistered events table using ens-manager.token.decode_log
+-- NOTE: Using UNION ALL instead of CASE because BigQuery evaluates all CASE branches,
+-- causing decode_log to fail when it tries to decode events with mismatched ABIs.
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_controller_NameRegistered` AS
-WITH decoded_events AS (
-  SELECT
-    block_timestamp,
-    block_number,
-    log_index,
-    transaction_hash,
-    address,
-    topics,
-    data,
-    -- Decode using ens-manager's decode_log function with version-specific ABIs
-    CASE
-      WHEN topics[SAFE_OFFSET(0)] = controller_v5_registered_sig THEN  -- Controller v5
-        `ens-manager.token.decode_log`(
-          'NameRegistered(string label, bytes32 indexed labelhash, address indexed owner, uint256 baseCost, uint256 premium, uint256 expires, bytes32 referrer)',
-          data,
-          topics
-        )
-      WHEN topics[SAFE_OFFSET(0)] = controller_v4_registered_sig THEN  -- Controller v4
-        `ens-manager.token.decode_log`(
-          'NameRegistered(string name, bytes32 indexed label, address indexed owner, uint256 baseCost, uint256 premium, uint256 expires)',
-          data,
-          topics
-        )
-      ELSE  -- Controller v1-v3
-        `ens-manager.token.decode_log`(
-          'NameRegistered(string name, bytes32 indexed label, address indexed owner, uint256 cost, uint256 expires)',
-          data,
-          topics
-        )
-    END AS decoded_data
-  FROM `web3-publicgoods.ens._raw_controller_events`
-  WHERE topics[SAFE_OFFSET(0)] IN (
-      controller_v1_registered_sig,  -- NameRegistered v1-v3 (both use same signature)
-      controller_v4_registered_sig,  -- NameRegistered v4 (new signature with baseCost/premium)
-      controller_v5_registered_sig   -- NameRegistered v5 (with referrer)
-  )
-)
+
+-- Controller v5 events (with referrer)
 SELECT
     block_timestamp,
     block_number,
     log_index,
     transaction_hash,
     address,
-    -- Extract fields from decoded data array
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
-    CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,     -- address owner (indexed, extract last 20 bytes)
-    decoded_data[SAFE_OFFSET(0)] AS name, -- string name/label (decoded with full Unicode support)
-    -- Handle cost calculation based on controller version
-    CASE
-        WHEN topics[SAFE_OFFSET(0)] IN (controller_v4_registered_sig, controller_v5_registered_sig) THEN  -- Controller v4/v5
-            SAFE_ADD(
-                SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS INT64),  -- baseCost
-                SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS INT64)   -- + premium
-            )
-        ELSE  -- Controller v1-v3
-            SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS INT64)      -- cost (total)
-    END AS cost,
-    -- Extract baseCost (for Controller v4/v5)
-    CASE
-        WHEN topics[SAFE_OFFSET(0)] IN (controller_v4_registered_sig, controller_v5_registered_sig) THEN
-            SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS INT64)      -- baseCost
-        ELSE NULL
-    END AS base_cost,
-    -- Extract premium (for Controller v4/v5)
-    CASE
-        WHEN topics[SAFE_OFFSET(0)] IN (controller_v4_registered_sig, controller_v5_registered_sig) THEN
-            SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS INT64)      -- premium
-        ELSE NULL
-    END AS premium,
-    -- Extract expires field
-    CASE
-        WHEN topics[SAFE_OFFSET(0)] IN (controller_v4_registered_sig, controller_v5_registered_sig) THEN
-            SAFE_CAST(decoded_data[SAFE_OFFSET(5)] AS INT64)      -- expires
-        ELSE  -- Controller v1-v3
-            SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS INT64)      -- expires
-    END AS expires,
-    -- Extract referrer (only for Controller v5)
-    CASE
-        WHEN topics[SAFE_OFFSET(0)] = controller_v5_registered_sig THEN
-            decoded_data[SAFE_OFFSET(6)]                          -- referrer
-        ELSE NULL
-    END AS referrer
-FROM decoded_events;
+    CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,     -- address owner (indexed)
+    decoded_data[SAFE_OFFSET(0)] AS name, -- string label (decoded with full Unicode support)
+    -- cost = baseCost + premium (BIGNUMERIC to avoid INT64 overflow for premium names > 9.22 ETH)
+    SAFE_ADD(
+        SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS BIGNUMERIC),
+        SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS BIGNUMERIC)
+    ) AS cost,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS BIGNUMERIC) AS base_cost,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS BIGNUMERIC) AS premium,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(5)] AS INT64) AS expires,
+    decoded_data[SAFE_OFFSET(6)] AS referrer
+FROM (
+  SELECT *, `ens-manager.token.decode_log`(
+    'NameRegistered(string label, bytes32 indexed labelhash, address indexed owner, uint256 baseCost, uint256 premium, uint256 expires, bytes32 referrer)',
+    data, topics
+  ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_controller_events`
+  WHERE topics[SAFE_OFFSET(0)] = controller_v5_registered_sig
+    AND LENGTH(data) < 100000  -- Exclude events with extremely long data that cause decode_log to fail
+)
+
+UNION ALL
+
+-- Controller v4 events (baseCost/premium, no referrer)
+SELECT
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics[SAFE_OFFSET(1)] AS label,
+    CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,
+    decoded_data[SAFE_OFFSET(0)] AS name,
+    SAFE_ADD(
+        SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS BIGNUMERIC),
+        SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS BIGNUMERIC)
+    ) AS cost,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS BIGNUMERIC) AS base_cost,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS BIGNUMERIC) AS premium,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(5)] AS INT64) AS expires,
+    NULL AS referrer
+FROM (
+  SELECT *, `ens-manager.token.decode_log`(
+    'NameRegistered(string name, bytes32 indexed label, address indexed owner, uint256 baseCost, uint256 premium, uint256 expires)',
+    data, topics
+  ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_controller_events`
+  WHERE topics[SAFE_OFFSET(0)] = controller_v4_registered_sig
+    AND LENGTH(data) < 100000  -- Exclude events with extremely long data that cause decode_log to fail
+)
+
+UNION ALL
+
+-- Controller v1-v3 events (single cost field)
+SELECT
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics[SAFE_OFFSET(1)] AS label,
+    CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS owner,
+    decoded_data[SAFE_OFFSET(0)] AS name,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS BIGNUMERIC) AS cost,
+    NULL AS base_cost,
+    NULL AS premium,
+    SAFE_CAST(decoded_data[SAFE_OFFSET(4)] AS INT64) AS expires,
+    NULL AS referrer
+FROM (
+  SELECT *, `ens-manager.token.decode_log`(
+    'NameRegistered(string name, bytes32 indexed label, address indexed owner, uint256 cost, uint256 expires)',
+    data, topics
+  ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_controller_events`
+  WHERE topics[SAFE_OFFSET(0)] = controller_v1_registered_sig
+    AND LENGTH(data) < 100000  -- Exclude events with extremely long data that cause decode_log to fail
+);
 
 -- Create decoded NameRenewed events table using ens-manager.token.decode_log
+-- NOTE: Using UNION ALL instead of CASE because BigQuery evaluates all CASE branches,
+-- causing decode_log to fail when it tries to decode events with mismatched ABIs.
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._decoded_controller_NameRenewed` AS
-WITH decoded_events AS (
-  SELECT
-    block_timestamp,
-    block_number,
-    log_index,
-    transaction_hash,
-    address,
-    topics,
-    data,
-    -- Decode using ens-manager's decode_log function with version-specific ABIs
-    CASE
-      WHEN topics[SAFE_OFFSET(0)] = controller_v5_renewed_sig THEN  -- Controller v5
-        `ens-manager.token.decode_log`(
-          'NameRenewed(string label, bytes32 indexed labelhash, uint256 cost, uint256 expires, bytes32 referrer)',
-          data,
-          topics
-        )
-      ELSE  -- Controller v1-v4
-        `ens-manager.token.decode_log`(
-          'NameRenewed(string name, bytes32 indexed label, uint256 cost, uint256 expires)',
-          data,
-          topics
-        )
-    END AS decoded_data
-  FROM `web3-publicgoods.ens._raw_controller_events`
-  WHERE topics[SAFE_OFFSET(0)] IN (controller_renewed_sig, controller_v5_renewed_sig)
-)
+
+-- Controller v5 events (with referrer)
 SELECT
     block_timestamp,
     block_number,
     log_index,
     transaction_hash,
     address,
-    -- Extract fields from decoded data array
     topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
-    decoded_data[SAFE_OFFSET(0)] AS name, -- string name/label (decoded with full Unicode support)
-    SAFE_CAST(decoded_data[SAFE_OFFSET(2)] AS INT64) AS cost,    -- cost (total renewal cost)
+    decoded_data[SAFE_OFFSET(0)] AS name, -- string label (decoded with full Unicode support)
+    SAFE_CAST(decoded_data[SAFE_OFFSET(2)] AS BIGNUMERIC) AS cost,    -- cost (total renewal cost, BIGNUMERIC to avoid overflow)
     SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS INT64) AS expires, -- expires timestamp
     -- Note: NameRenewed events do NOT have separate base_cost/premium fields
     NULL AS base_cost,
     NULL AS premium,
-    -- Extract referrer (only for Controller v5)
-    CASE
-        WHEN topics[SAFE_OFFSET(0)] = controller_v5_renewed_sig THEN
-            decoded_data[SAFE_OFFSET(4)]                          -- referrer
-        ELSE NULL
-    END AS referrer
-FROM decoded_events;
+    decoded_data[SAFE_OFFSET(4)] AS referrer
+FROM (
+  SELECT *, `ens-manager.token.decode_log`(
+    'NameRenewed(string label, bytes32 indexed labelhash, uint256 cost, uint256 expires, bytes32 referrer)',
+    data, topics
+  ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_controller_events`
+  WHERE topics[SAFE_OFFSET(0)] = controller_v5_renewed_sig
+    AND LENGTH(data) < 100000  -- Exclude events with extremely long data that cause decode_log to fail
+)
+
+UNION ALL
+
+-- Controller v1-v4 events (no referrer)
+SELECT
+    block_timestamp,
+    block_number,
+    log_index,
+    transaction_hash,
+    address,
+    topics[SAFE_OFFSET(1)] AS label,     -- bytes32 labelhash (indexed)
+    decoded_data[SAFE_OFFSET(0)] AS name, -- string name (decoded with full Unicode support)
+    SAFE_CAST(decoded_data[SAFE_OFFSET(2)] AS BIGNUMERIC) AS cost,    -- cost (total renewal cost, BIGNUMERIC to avoid overflow)
+    SAFE_CAST(decoded_data[SAFE_OFFSET(3)] AS INT64) AS expires, -- expires timestamp
+    NULL AS base_cost,
+    NULL AS premium,
+    NULL AS referrer
+FROM (
+  SELECT *, `ens-manager.token.decode_log`(
+    'NameRenewed(string name, bytes32 indexed label, uint256 cost, uint256 expires)',
+    data, topics
+  ) AS decoded_data
+  FROM `web3-publicgoods.ens._raw_controller_events`
+  WHERE topics[SAFE_OFFSET(0)] = controller_renewed_sig
+    AND LENGTH(data) < 100000  -- Exclude events with extremely long data that cause decode_log to fail
+);
