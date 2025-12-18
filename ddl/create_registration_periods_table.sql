@@ -22,14 +22,23 @@ SELECT
     transaction_hash,
     labelhash,
     LAST_VALUE(label IGNORE NULLS) OVER(
-      PARTITION BY labelhash 
-      ORDER BY block_timestamp, log_index 
+      PARTITION BY labelhash
+      ORDER BY block_timestamp, log_index
       ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
     ) AS label,
     block_timestamp AS event_timestamp,
     log_index,
-    -- Correct logic: start_time is when the registration/renewal actually happened
-    block_timestamp AS start_time,
+    -- start_time logic depends on event type:
+    -- For registrations/migrations: start_time = block_timestamp (when the name was registered)
+    -- For renewals: start_time = previous expiry (the new period extends from where the old one ended)
+    CASE
+      WHEN event IN ('registered', 'migrated') THEN block_timestamp
+      ELSE COALESCE(
+             LAG(TIMESTAMP_SECONDS(CAST(expires AS INT64)))
+               OVER (PARTITION BY labelhash ORDER BY block_timestamp, log_index),
+             block_timestamp  -- fallback if no previous event (shouldn't happen for renewals)
+           )
+    END AS start_time,
     TIMESTAMP_SECONDS(CAST(expires AS INT64)) AS end_time,
     cost,
     base_cost,
@@ -90,6 +99,18 @@ SELECT
       ON l.labelHash = FROM_HEX(SUBSTR(m.labelhash, 3))  -- Remove 0x prefix for comparison
     ) AS events
     WHERE labelhash IS NOT NULL
+    -- Filter out records where duration <= 0 (invalid/duplicate records)
+    QUALIFY TIMESTAMP_DIFF(
+      TIMESTAMP_SECONDS(CAST(expires AS INT64)),
+      CASE
+        WHEN event IN ('registered', 'migrated') THEN block_timestamp
+        ELSE COALESCE(
+               LAG(TIMESTAMP_SECONDS(CAST(expires AS INT64)))
+                 OVER (PARTITION BY labelhash ORDER BY block_timestamp, log_index),
+               block_timestamp
+             )
+      END,
+      SECOND) > 0
   )
   WHERE labelhash IS NOT NULL
 ),

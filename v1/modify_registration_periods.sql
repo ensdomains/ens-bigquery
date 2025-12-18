@@ -12,7 +12,17 @@ FROM ( (
       labelhash,
       LAST_VALUE(label IGNORE NULLS) OVER(PARTITION BY labelhash ORDER BY block_timestamp, log_index ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS label,
       block_timestamp AS event_timestamp,
-      GREATEST(block_timestamp, LAG(TIMESTAMP_ADD(timestamp "1970-01-01 00:00:00+00", INTERVAL CAST(expires AS int64) SECOND), 1, timestamp "1970-01-01 00:00:00+00") OVER (PARTITION BY labelhash ORDER BY block_timestamp, log_index)) AS start_time,
+      -- start_time logic depends on event type:
+      -- For registrations/migrations: start_time = block_timestamp (when the name was registered)
+      -- For renewals: start_time = previous expiry (the new period extends from where the old one ended)
+      CASE
+        WHEN event IN ('registered', 'migrated') THEN block_timestamp
+        ELSE COALESCE(
+               LAG(TIMESTAMP_ADD(timestamp "1970-01-01 00:00:00+00", INTERVAL CAST(expires AS int64) SECOND))
+                 OVER (PARTITION BY labelhash ORDER BY block_timestamp, log_index),
+               block_timestamp  -- fallback if no previous event (shouldn't happen for renewals)
+             )
+      END AS start_time,
       TIMESTAMP_ADD(timestamp "1970-01-01 00:00:00+00", INTERVAL CAST(expires AS int64) SECOND) AS end_time,
       cost,
       NULL AS ether_price,
@@ -127,8 +137,8 @@ FROM ( (
         `ens-manager.names.ETHRegistrarController4_event_NameRenewed_fixed`
       UNION ALL
       SELECT
-        label AS labelhash,
-        name AS label,
+        labelhash,
+        label,
         NULL AS owner,
         block_timestamp,
         log_index,
@@ -139,8 +149,8 @@ FROM ( (
         `ens-manager.names.ETHRegistrarController5_event_NameRegistered`
       UNION ALL
       SELECT
-        label AS labelhash,
-        name AS label,
+        labelhash,
+        label,
         NULL AS owner,
         block_timestamp,
         log_index,
@@ -150,7 +160,19 @@ FROM ( (
       FROM
         `ens-manager.names.ETHRegistrarController5_event_NameRenewed_fixed` ) AS events
     WHERE
-      1 = 1 QUALIFY TIMESTAMP_DIFF(end_time, start_time, SECOND) > 0 )
+      1 = 1
+    -- Filter out records where duration <= 0 (invalid/duplicate records)
+    QUALIFY TIMESTAMP_DIFF(
+      TIMESTAMP_ADD(timestamp "1970-01-01 00:00:00+00", INTERVAL CAST(expires AS int64) SECOND),
+      CASE
+        WHEN event IN ('registered', 'migrated') THEN block_timestamp
+        ELSE COALESCE(
+               LAG(TIMESTAMP_ADD(timestamp "1970-01-01 00:00:00+00", INTERVAL CAST(expires AS int64) SECOND))
+                 OVER (PARTITION BY labelhash ORDER BY block_timestamp, log_index),
+               block_timestamp
+             )
+      END,
+      SECOND) > 0 )
   UNION ALL
   SELECT
     NULL AS labelhash,
