@@ -4,55 +4,72 @@
 
 -- Note: NAMEHASH function is defined in create_functions.sql
 
--- Create reverse records using the proper ENS logic
+-- Create reverse records with forward_resolution validation column
 CREATE OR REPLACE TABLE `web3-publicgoods.ens.reverse_records` AS
 WITH
--- Get all ETH addresses that have been resolved (forward resolution)
-resolved_addrs AS (
+-- Get all addresses that have ETH address records (these are the ones that could have reverse records)
+addresses_with_forward AS (
   SELECT DISTINCT
     node,
-    addr
+    addr AS address
   FROM `web3-publicgoods.ens._state_resolver_eth_addresses`
   WHERE addr IS NOT NULL
     AND addr != '0x0000000000000000000000000000000000000000'
     AND LENGTH(addr) = 42
 ),
--- Get all resolvers (we'll use our resolver table)
-resolvers AS (
-  SELECT DISTINCT
+-- Get the current resolver for each reverse node from the registry
+-- This ensures we only use the reverse name from the currently active resolver
+current_reverse_resolvers AS (
+  SELECT
     node,
-    address AS resolver
-  FROM `web3-publicgoods.ens.resolvers`
-  WHERE reverseName IS NOT NULL
-    AND reverseName != ''
+    resolver AS current_resolver
+  FROM (
+    SELECT
+      node,
+      resolver,
+      ROW_NUMBER() OVER (PARTITION BY node ORDER BY block_timestamp DESC, log_index DESC) AS rn
+    FROM `web3-publicgoods.ens._decoded_registry_NewResolver`
+    WHERE resolver != '0x0000000000000000000000000000000000000000'
+  )
+  WHERE rn = 1
 ),
--- Get names with their reverse names (from resolver reverse name data)
-names AS (
+-- Get reverse record names by checking which addresses have reverse records set
+-- Only use the reverse name from the CURRENTLY ACTIVE resolver for each reverse node
+all_reverse_records AS (
   SELECT DISTINCT
-    node,
-    address AS resolver,
-    reverseName AS name
-  FROM `web3-publicgoods.ens._state_resolver_reverse_names`
-  WHERE reverseName IS NOT NULL 
-    AND reverseName != ''
+    awf.address,
+    rr.reverseName AS name
+  FROM addresses_with_forward awf
+  INNER JOIN current_reverse_resolvers crr
+    ON crr.node = `web3-publicgoods.ens.NAMEHASH`(CONCAT(SUBSTR(awf.address, 3), ".addr.reverse"))
+  INNER JOIN `web3-publicgoods.ens._state_resolver_reverse_names` rr
+    ON rr.node = crr.node
+    AND rr.address = crr.current_resolver  -- Only use the current resolver's reverse name
+  WHERE rr.reverseName IS NOT NULL
+    AND rr.reverseName != ''
+),
+-- Get forward resolution data
+forward_resolutions AS (
+  SELECT DISTINCT
+    node AS forward_node,
+    addr AS resolved_address
+  FROM `web3-publicgoods.ens._state_resolver_eth_addresses`
+  WHERE addr IS NOT NULL
+    AND addr != '0x0000000000000000000000000000000000000000'
+    AND LENGTH(addr) = 42
 )
--- Apply the ens-manager logic:
--- 1. Join resolved_addrs with resolvers where reverse node matches
--- 2. Join with names to get the actual name
--- 3. Validate that forward resolution matches
+-- Create final table with forward_resolution validation
 SELECT DISTINCT
-  resolved_addrs.addr AS address,
-  names.name AS name
-FROM resolved_addrs
--- Join resolvers where the reverse node matches addr.reverse pattern
-INNER JOIN resolvers 
-  ON resolvers.node = `web3-publicgoods.ens.NAMEHASH`(CONCAT(SUBSTR(resolved_addrs.addr, 3), ".addr.reverse"))
--- Join names to get the actual ENS name
-INNER JOIN names 
-  ON names.resolver = resolvers.resolver 
-  AND names.node = resolvers.node
--- Validate that forward resolution matches (prevents invalid reverse records)
-WHERE resolved_addrs.node = `web3-publicgoods.ens.NAMEHASH`(names.name);
+  arr.address,
+  arr.name,
+  -- Check if forward resolution matches
+  CASE
+    WHEN fr.resolved_address = arr.address THEN TRUE
+    ELSE FALSE
+  END AS forward_resolution
+FROM all_reverse_records arr
+LEFT JOIN forward_resolutions fr
+  ON fr.forward_node = `web3-publicgoods.ens.NAMEHASH`(arr.name);
 
 -- Create an unvalidated version without the validation step for debugging
 CREATE OR REPLACE TABLE `web3-publicgoods.ens._debug_reverse_records_unvalidated` AS

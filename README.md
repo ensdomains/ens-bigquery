@@ -171,17 +171,12 @@ scripts/                      # Pipeline automation
 ## QA
 
 - [x] Daily registration & renewal (*.view_daily_summary) counts match with Dune dashboard https://dune.com/queries/6535/12977
-- [ ] Number of Active .eth names
-- [ ] Number of Active reverse names
+- [x] Number of Active .eth names
+- [x] Number of Active reverse names
 - [ ] Number of Unique Addresses
-
-
-## Open itesm
-
 - check resolver events quality
 - check registry events quality
-- check `reverse_record` quality
 - check `resolutins` quality
 - check `resolvers` quality
 - Add OG ENS data
-- Add clustering using 1000 clubs, chinese, arabic, etc
+- Add categorisation of clustering using 1000 clubs, chinese, arabic, etc

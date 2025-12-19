@@ -160,7 +160,8 @@ SELECT
   log_index,
   address,
   topics[SAFE_OFFSET(1)] AS node,
-  decoded_data[SAFE_OFFSET(0)] AS domain_name
+  -- decode_log returns [node (indexed), name] - use index 1 for the name string
+  decoded_data[SAFE_OFFSET(1)] AS domain_name
 FROM decoded_events;
 
 -- Resolver PubkeyChanged events (bytes32 node, bytes32 x, bytes32 y)
